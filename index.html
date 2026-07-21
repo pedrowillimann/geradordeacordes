@@ -50,14 +50,36 @@
   }
   button#gerar:active{ transform:scale(0.97); opacity:0.9; }
   #resultado{ text-align:center; }
-  #resultado .label{ font-size:0.8rem; color:var(--muted); margin-bottom:10px; }
-  .chords{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:6px; }
+  .label{ font-size:0.8rem; color:var(--muted); margin-bottom:10px; }
+  .chords{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:10px; }
   .chord{
     background:#12151c; border:1px solid var(--border); border-radius:10px;
     padding:10px 14px; font-size:1.15rem; font-weight:700; min-width:52px; text-align:center;
   }
-  .roman{ font-size:0.75rem; color:var(--muted); margin-top:14px; }
+  .roman{ font-size:0.75rem; color:var(--muted); margin-bottom:12px; }
   .empty{ color:var(--muted); font-size:0.9rem; padding:20px 0; }
+  .acoes{ display:flex; gap:8px; justify-content:center; }
+  .acoes button{
+    font-size:0.8rem; padding:8px 12px; border-radius:8px; border:1px solid var(--border);
+    background:#12151c; color:var(--text); cursor:pointer;
+  }
+  .acoes button:active{ transform:scale(0.97); }
+  .tabs{ display:flex; gap:8px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+  .tabs button{
+    flex:1; border:none; background:none; padding:8px; font-size:0.85rem;
+    color:var(--muted); border-bottom:2px solid transparent; cursor:pointer;
+  }
+  .tabs button.ativo{ color:var(--text); border-bottom-color:var(--accent); }
+  .item-lista{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px; border:1px solid var(--border); border-radius:8px;
+    margin-bottom:6px; cursor:pointer; background:#12151c;
+  }
+  .item-lista:hover{ border-color:var(--accent); }
+  .item-lista .info{ font-size:0.8rem; }
+  .item-lista .sub{ color:var(--muted); font-size:0.7rem; display:block; }
+  .item-lista .icone{ color:var(--muted); font-size:1rem; }
+  .vazio{ font-size:0.8rem; color:var(--muted); text-align:center; padding:10px 0; }
   footer{ text-align:center; color:var(--muted); font-size:0.75rem; margin-top:20px; }
 </style>
 </head>
@@ -106,6 +128,15 @@
     <div class="empty">Clique em "Gerar" para começar 🎶</div>
   </div>
 
+  <div class="card">
+    <div class="tabs">
+      <button id="tab-historico" class="ativo">Histórico</button>
+      <button id="tab-favoritos">Favoritos</button>
+    </div>
+    <div id="lista-historico"></div>
+    <div id="lista-favoritos" style="display:none;"></div>
+  </div>
+
   <footer>Cada clique gera uma progressão diferente para o estilo escolhido.</footer>
 </div>
 
@@ -114,22 +145,12 @@ const NOTAS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
 const ESCALAS = {
   maior: [
-    {grau:0,  qual:''},
-    {grau:2,  qual:'m'},
-    {grau:4,  qual:'m'},
-    {grau:5,  qual:''},
-    {grau:7,  qual:''},
-    {grau:9,  qual:'m'},
-    {grau:11, qual:'dim'}
+    {grau:0,  qual:''},{grau:2,  qual:'m'},{grau:4,  qual:'m'},{grau:5,  qual:''},
+    {grau:7,  qual:''},{grau:9,  qual:'m'},{grau:11, qual:'dim'}
   ],
   menor: [
-    {grau:0,  qual:'m'},
-    {grau:2,  qual:'dim'},
-    {grau:3,  qual:''},
-    {grau:5,  qual:'m'},
-    {grau:7,  qual:'m'},
-    {grau:8,  qual:''},
-    {grau:10, qual:''}
+    {grau:0,  qual:'m'},{grau:2,  qual:'dim'},{grau:3,  qual:''},{grau:5,  qual:'m'},
+    {grau:7,  qual:'m'},{grau:8,  qual:''},{grau:10, qual:''}
   ]
 };
 
@@ -143,7 +164,6 @@ const EXTENSOES = {
   blues:  {'':'7', 'm':'m7', 'dim':'dim7'}
 };
 
-// Tabelas de transição: para cada grau atual, lista de [proximoGrau, peso]
 const TRANSICOES = {
   pop:    {0:[[3,3],[4,3],[5,3],[1,1]], 1:[[4,4],[3,2],[0,1]], 2:[[5,3],[3,2],[0,1]], 3:[[4,4],[0,3],[1,1]], 4:[[0,5],[5,3],[3,1]], 5:[[3,4],[4,3],[1,2],[0,1]], 6:[[0,5],[4,2]]},
   rock:   {0:[[3,4],[4,3],[5,2]], 1:[[4,3],[0,2]], 2:[[5,3],[0,2]], 3:[[0,4],[4,4],[5,1]], 4:[[0,5],[3,3]], 5:[[3,4],[4,3],[0,1]], 6:[[0,5]]},
@@ -159,7 +179,6 @@ const BLUES_12 = [0,0,0,0,3,3,0,0,4,3,0,4];
 function nota(indiceBase, semitons){
   return NOTAS[(indiceBase + semitons + 120) % 12];
 }
-
 function gerarAcorde(tomIndex, grauInfo, estilo){
   const raiz = nota(tomIndex, grauInfo.grau);
   let sufixo = grauInfo.qual;
@@ -169,11 +188,9 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
   }
   return raiz + sufixo;
 }
-
 function gerarRoman(idxGrau, escala){
   return escala === 'maior' ? ROMANOS_MAIOR[idxGrau] : ROMANOS_MENOR[idxGrau];
 }
-
 function escolherPeso(opcoes){
   const total = opcoes.reduce((s,o) => s + o[1], 0);
   let r = Math.random() * total;
@@ -183,7 +200,6 @@ function escolherPeso(opcoes){
   }
   return opcoes[0][0];
 }
-
 function gerarSequenciaDegraus(estilo, qtd){
   if (estilo === 'blues'){
     if (qtd <= 8) return BLUES_8.slice(0, qtd);
@@ -200,6 +216,105 @@ function gerarSequenciaDegraus(estilo, qtd){
   return seq;
 }
 
+// ---- Histórico e Favoritos (localStorage) ----
+const LS_HIST = 'progressoes_historico';
+const LS_FAV = 'progressoes_favoritos';
+function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
+function salvar(chave,dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
+
+let historico = carregar(LS_HIST);
+let favoritos = carregar(LS_FAV);
+
+function idDe(item){ return item.tom+'|'+item.escala+'|'+item.estilo+'|'+item.acordes.join(','); }
+function ehFavorito(item){ return favoritos.some(f => idDe(f)===idDe(item)); }
+
+function renderResultado(item){
+  document.getElementById('resultado').innerHTML = `
+    <div class="label">Progressão em ${item.tom} ${item.escala} — estilo ${item.estilo} (${item.acordes.length} acordes)</div>
+    <div class="chords">${item.acordes.map(a => `<div class="chord">${a}</div>`).join('')}</div>
+    <div class="roman">${item.romanos.join(' - ')}</div>
+    <div class="acoes">
+      <button id="btn-copiar">📋 Copiar</button>
+      <button id="btn-favoritar">${ehFavorito(item) ? '⭐ Favoritado' : '☆ Favoritar'}</button>
+    </div>
+  `;
+  document.getElementById('btn-copiar').addEventListener('click', () => {
+    navigator.clipboard.writeText(item.acordes.join(' - '));
+    const btn = document.getElementById('btn-copiar');
+    btn.textContent = '✅ Copiado';
+    setTimeout(() => { btn.textContent = '📋 Copiar'; }, 1500);
+  });
+  document.getElementById('btn-favoritar').addEventListener('click', () => {
+    if (ehFavorito(item)){
+      favoritos = favoritos.filter(f => idDe(f)!==idDe(item));
+    } else {
+      favoritos.unshift(item);
+    }
+    salvar(LS_FAV, favoritos);
+    renderResultado(item);
+    renderListas();
+  });
+}
+
+function linhaItem(item, mostrarRemover){
+  const div = document.createElement('div');
+  div.className = 'item-lista';
+  div.innerHTML = `
+    <div class="info">
+      <span>${item.acordes.join(' - ')}</span>
+      <span class="sub">${item.tom} ${item.escala} · ${item.estilo}</span>
+    </div>
+    <span class="icone">${mostrarRemover ? '✕' : '☆'}</span>
+  `;
+  div.querySelector('.icone').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (mostrarRemover){
+      favoritos = favoritos.filter(f => idDe(f)!==idDe(item));
+    } else {
+      if (ehFavorito(item)){
+        favoritos = favoritos.filter(f => idDe(f)!==idDe(item));
+      } else {
+        favoritos.unshift(item);
+      }
+    }
+    salvar(LS_FAV, favoritos);
+    renderListas();
+  });
+  div.addEventListener('click', () => renderResultado(item));
+  return div;
+}
+
+function renderListas(){
+  const listaHist = document.getElementById('lista-historico');
+  const listaFav = document.getElementById('lista-favoritos');
+  listaHist.innerHTML = '';
+  listaFav.innerHTML = '';
+
+  if (historico.length === 0){
+    listaHist.innerHTML = '<div class="vazio">Nenhuma progressão gerada ainda.</div>';
+  } else {
+    historico.slice(0,10).forEach(item => listaHist.appendChild(linhaItem(item, false)));
+  }
+  if (favoritos.length === 0){
+    listaFav.innerHTML = '<div class="vazio">Nenhum favorito ainda.</div>';
+  } else {
+    favoritos.forEach(item => listaFav.appendChild(linhaItem(item, true)));
+  }
+}
+
+document.getElementById('tab-historico').addEventListener('click', () => {
+  document.getElementById('lista-historico').style.display = 'block';
+  document.getElementById('lista-favoritos').style.display = 'none';
+  document.getElementById('tab-historico').classList.add('ativo');
+  document.getElementById('tab-favoritos').classList.remove('ativo');
+});
+document.getElementById('tab-favoritos').addEventListener('click', () => {
+  document.getElementById('lista-favoritos').style.display = 'block';
+  document.getElementById('lista-historico').style.display = 'none';
+  document.getElementById('tab-favoritos').classList.add('ativo');
+  document.getElementById('tab-historico').classList.remove('ativo');
+});
+
 document.getElementById('gerar').addEventListener('click', () => {
   const estilo = document.getElementById('estilo').value;
   const escala = document.getElementById('escala').value;
@@ -212,12 +327,16 @@ document.getElementById('gerar').addEventListener('click', () => {
   const acordes = sequencia.map(idx => gerarAcorde(tomIndex, escalaGraus[idx], estilo));
   const romanos = sequencia.map(idx => gerarRoman(idx, escala));
 
-  document.getElementById('resultado').innerHTML = `
-    <div class="label">Progressão em ${tom} ${escala} — estilo ${estilo} (${qtd} acordes)</div>
-    <div class="chords">${acordes.map(a => `<div class="chord">${a}</div>`).join('')}</div>
-    <div class="roman">${romanos.join(' - ')}</div>
-  `;
+  const item = { estilo, escala, tom, acordes, romanos, ts: Date.now() };
+  historico.unshift(item);
+  historico = historico.slice(0,10);
+  salvar(LS_HIST, historico);
+
+  renderResultado(item);
+  renderListas();
 });
+
+renderListas();
 </script>
 </body>
 </html>
