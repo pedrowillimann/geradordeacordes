@@ -131,10 +131,11 @@
 
   <div class="card" id="resultado">
     <div class="empty">Clique em "Gerar" para começar 🎶</div>
-    
   </div>
-<div class="card" id="campoHarmonico">
-</div>
+  
+  <div class="card" id="campoHarmonico">
+  </div>
+
   <div class="card">
     <div class="tabs">
       <button id="tab-historico" class="ativo">Histórico</button>
@@ -171,34 +172,23 @@ const EXTENSOES = {
   blues:  {'':'7', 'm':'m7', 'dim':'dim7'}
 };
 
-const TRANSICOES = {
-  pop:    {0:[[3,3],[4,3],[5,3],[1,1]], 1:[[4,4],[3,2],[0,1]], 2:[[5,3],[3,2],[0,1]], 3:[[4,4],[0,3],[1,1]], 4:[[0,5],[5,3],[3,1]], 5:[[3,4],[4,3],[1,2],[0,1]], 6:[[0,5],[4,2]]},
-  rock:   {0:[[3,4],[4,3],[5,2]], 1:[[4,3],[0,2]], 2:[[5,3],[0,2]], 3:[[0,4],[4,4],[5,1]], 4:[[0,5],[3,3]], 5:[[3,4],[4,3],[0,1]], 6:[[0,5]]},
-  jazz:   {0:[[1,4],[5,2],[3,2],[2,1]], 1:[[4,6],[6,1]], 2:[[5,4],[1,2]], 3:[[4,3],[1,2],[0,1]], 4:[[0,5],[5,3],[1,1]], 5:[[1,4],[4,2],[2,2]], 6:[[0,4],[4,2]]},
-  bossa:  {0:[[1,4],[5,3],[3,2]], 1:[[4,6]], 2:[[5,4],[1,2]], 3:[[4,3],[0,2]], 4:[[0,5],[5,2]], 5:[[1,4],[4,3]], 6:[[0,4]]},
-  gospel: {0:[[1,3],[5,3],[3,3],[4,2]], 1:[[4,5],[3,1]], 2:[[5,3],[1,2]], 3:[[4,4],[0,2]], 4:[[0,5],[5,3]], 5:[[3,3],[4,3],[1,2]], 6:[[0,4]]},
-  folk:   {0:[[3,4],[4,3],[5,3]], 1:[[4,3],[0,2]], 2:[[5,3],[0,1]], 3:[[0,4],[4,3]], 4:[[0,5],[3,2]], 5:[[3,4],[4,2],[0,1]], 6:[[0,4]]}
-};
-
 const BLUES_8  = [0,0,3,0,4,3,0,4];
 const BLUES_12 = [0,0,0,0,3,3,0,0,4,3,0,4];
 
 function nota(indiceBase, semitons){
   return NOTAS[(indiceBase + semitons + 120) % 12];
 }
+
 function gerarAcorde(tomIndex, grauInfo, estilo){
-
+  if (!grauInfo) return '';
+  
   const raiz = nota(tomIndex, grauInfo.grau);
-
   let sufixo = grauInfo.qual;
-
   const ext = EXTENSOES[estilo];
 
   if (ext && Math.random() < 0.7 && ext[grauInfo.qual] !== undefined){
     sufixo = ext[grauInfo.qual];
   }
-
-  // NOVOS ESTILOS
 
   if (estilo === 'indie' && grauInfo.qual === '' && Math.random() < 0.30){
     sufixo = ['add9','sus2'][Math.floor(Math.random()*2)];
@@ -222,29 +212,21 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
 
   return raiz + sufixo;
 }
+
 function gerarRoman(idxGrau, escala){
-  return escala === 'maior' ? ROMANOS_MAIOR[idxGrau] : ROMANOS_MENOR[idxGrau];
+  const arrayRomanos = escala === 'maior' ? ROMANOS_MAIOR : ROMANOS_MENOR;
+  return arrayRomanos[idxGrau] || '';
 }
-  function gerarCampoHarmonico(tomIndex, escala){
 
+function gerarCampoHarmonico(tomIndex, escala){
   const graus = ESCALAS[escala];
-
   return graus.map(grauInfo => {
     const raiz = nota(tomIndex, grauInfo.grau);
     return raiz + grauInfo.qual;
   });
 }
-function escolherPeso(opcoes){
-  const total = opcoes.reduce((s,o) => s + o[1], 0);
-  let r = Math.random() * total;
-  for (const [deg, peso] of opcoes){
-    if (r < peso) return deg;
-    r -= peso;
-  }
-  return opcoes[0][0];
-}
-function gerarSequenciaDegraus(estilo, qtd){
 
+function gerarSequenciaDegraus(estilo, qtd){
   if (estilo === 'blues'){
     if (qtd <= 8) return BLUES_8.slice(0, qtd);
     return BLUES_12.slice(0, qtd > 12 ? 12 : qtd);
@@ -252,94 +234,42 @@ function gerarSequenciaDegraus(estilo, qtd){
 
   const progressosComuns = {
     pop: [
-      [5,3,0,4],      // vi IV I V
-      [0,4,5,3],      // I V vi IV
-      [0,5,3,4],      // I vi IV V
-      [3,0,4,5],      // IV I V vi
-      [5,4,0,3]
+      [5,3,0,4], [0,4,5,3], [0,5,3,4], [3,0,4,5], [5,4,0,3]
     ],
-
     rock: [
-      [0,4,3,0],
-      [5,3,0,4],
-      [4,3,0,0],
-      [3,4,0,5],
-      [0,3,4,0]
+      [0,4,3,0], [5,3,0,4], [4,3,0,0], [3,4,0,5], [0,3,4,0]
     ],
-
     folk: [
-      [0,4,5,0],
-      [5,3,0,4],
-      [0,5,3,4],
-      [3,0,4,0]
+      [0,4,5,0], [5,3,0,4], [0,5,3,4], [3,0,4,0]
     ],
-
     gospel: [
-      [0,5,1,4],
-      [3,4,0,5],
-      [0,1,4,0],
-      [5,1,4,0]
+      [0,5,1,4], [3,4,0,5], [0,1,4,0], [5,1,4,0]
     ],
-
     jazz: [
-      [1,4,0,5],
-      [2,5,1,4],
-      [5,1,4,0],
-      [3,1,4,0]
+      [1,4,0,5], [2,5,1,4], [5,1,4,0], [3,1,4,0]
     ],
-
     bossa: [
-      [0,1,4,0],
-      [5,1,4,0],
-      [3,1,4,0],
-      [0,5,1,4]
+      [0,1,4,0], [5,1,4,0], [3,1,4,0], [0,5,1,4]
     ],
-      
     indie: [
-  [5,3,0,4],     // Am F C G
-  [0,4,5,3],     // C G Am F
-  [3,0,5,4],     // F C Am G
-  [5,4,0,3],     // Am G C F
-  [0,5,3,4]
-],
-
-britpop: [
-  [0,4,5,3],     // Oasis
-  [0,3,4,0],
-  [5,3,0,4],
-  [3,4,0,5],
-  [0,4,3,0]
-],
-
-grunge: [
-  [0,6,3,4],
-  [5,6,3,4],
-  [0,3,6,4],
-  [5,3,0,6],
-  [0,5,4,3]
-],
-
-mpb_romantica: [
-  [0,5,1,4],
-  [5,1,4,0],
-  [3,1,4,0],
-  [0,1,5,4],
-  [5,3,1,4]
-],
-
-bluesrock: [
-  [0,0,3,0,4,3,0,4],
-  [0,3,0,4,3,0,4,0],
-  [0,0,4,3,0,4,3,0],
-  [0,3,4,0,3,4,0,4]
-]
+      [5,3,0,4], [0,4,5,3], [3,0,5,4], [5,4,0,3], [0,5,3,4]
+    ],
+    britpop: [
+      [0,4,5,3], [0,3,4,0], [5,3,0,4], [3,4,0,5], [0,4,3,0]
+    ],
+    grunge: [
+      [0,5,3,4], [5,4,3,4], [0,3,5,4], [5,3,0,5], [0,5,4,3]
+    ],
+    mpb_romantica: [
+      [0,5,1,4], [5,1,4,0], [3,1,4,0], [0,1,5,4], [5,3,1,4]
+    ],
+    bluesrock: [
+      [0,0,3,0,4,3,0,4], [0,3,0,4,3,0,4,0], [0,0,4,3,0,4,3,0], [0,3,4,0,3,4,0,4]
+    ]
   };
 
   const base = progressosComuns[estilo] || progressosComuns.pop;
-
-  const modelo =
-    base[Math.floor(Math.random() * base.length)];
-
+  const modelo = base[Math.floor(Math.random() * base.length)];
   const seq = [];
 
   while (seq.length < qtd){
@@ -392,12 +322,15 @@ function renderResultado(item){
 function linhaItem(item, mostrarRemover){
   const div = document.createElement('div');
   div.className = 'item-lista';
+  
+  const iconeExibicao = mostrarRemover ? '✕' : (ehFavorito(item) ? '⭐' : '☆');
+
   div.innerHTML = `
     <div class="info">
       <span>${item.acordes.join(' - ')}</span>
       <span class="sub">${item.tom} ${item.escala} · ${item.estilo}</span>
     </div>
-    <span class="icone">${mostrarRemover ? '✕' : '☆'}</span>
+    <span class="icone">${iconeExibicao}</span>
   `;
   div.querySelector('.icone').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -412,6 +345,7 @@ function linhaItem(item, mostrarRemover){
     }
     salvar(LS_FAV, favoritos);
     renderListas();
+    renderResultado(item);
   });
   div.addEventListener('click', () => renderResultado(item));
   return div;
