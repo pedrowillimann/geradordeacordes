@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Progressão de Acordes</title>
+<title>Gerador de Progressão de Acordes Pro</title>
 <style>
   :root{
     --card:#1a1d24;
@@ -24,7 +24,7 @@
     justify-content:center;
     padding:24px 16px;
   }
-  .app{ width:100%; max-width:420px; }
+  .app{ width:100%; max-width:440px; }
   h1{ font-size:1.4rem; text-align:center; margin-bottom:4px; }
   p.subtitle{ text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 24px; }
   .card{
@@ -58,7 +58,7 @@
   }
   .roman{ font-size:0.75rem; color:var(--muted); margin-bottom:12px; }
   .empty{ color:var(--muted); font-size:0.9rem; padding:20px 0; }
-  .acoes{ display:flex; gap:8px; justify-content:center; }
+  .acoes{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
   .acoes button{
     font-size:0.8rem; padding:8px 12px; border-radius:8px; border:1px solid var(--border);
     background:#12151c; color:var(--text); cursor:pointer;
@@ -85,8 +85,8 @@
 </head>
 <body>
 <div class="app">
-  <h1>🎸 Gerador de Progressão</h1>
-  <p class="subtitle">Escolha o estilo, escala, tom e quantidade — depois clique em Gerar</p>
+  <h1>🎸 Gerador de Progressão Pro</h1>
+  <p class="subtitle">Escolha estilo, escala, tom e quantidade — depois toque e crie!</p>
 
   <div class="card">
     <label for="estilo">Estilo Musical</label>
@@ -96,6 +96,10 @@
       <option value="jazz">Jazz</option>
       <option value="blues">Blues</option>
       <option value="bossa">Bossa Nova / MPB</option>
+      <option value="samba">Samba / Pagode</option>
+      <option value="lofi">Lo-Fi / Chill</option>
+      <option value="reggae">Reggae</option>
+      <option value="metal">Metal</option>
       <option value="gospel">Gospel</option>
       <option value="folk">Folk</option>
       <option value="indie">Indie</option>
@@ -105,10 +109,17 @@
       <option value="bluesrock">Blues Rock</option>
     </select>
 
-    <label for="escala">Escala</label>
+    <label for="escala">Escala / Modo</label>
     <select id="escala">
-      <option value="maior">Maior</option>
-      <option value="menor">Menor</option>
+      <option value="maior">Maior (Jônio)</option>
+      <option value="menor">Menor (Eólio)</option>
+      <option value="menor_harmonica">Menor Harmônica</option>
+      <option value="menor_melodica">Menor Melódica</option>
+      <option value="dorico">Modo Dórico</option>
+      <option value="mixolidio">Modo Mixolídio</option>
+      <option value="penta_maior">Pentatônica Maior</option>
+      <option value="penta_menor">Pentatônica Menor</option>
+      <option value="blues_escala">Escala de Blues</option>
     </select>
 
     <label for="tom">Tom (Tônica)</label>
@@ -120,7 +131,8 @@
 
     <label for="qtd">Quantidade de Acordes</label>
     <select id="qtd">
-      <option value="4">4</option>
+      <option value="2">2 (Vamp / Loop)</option>
+      <option value="4" selected>4</option>
       <option value="6">6</option>
       <option value="8">8</option>
       <option value="12">12</option>
@@ -133,8 +145,7 @@
     <div class="empty">Clique em "Gerar" para começar 🎶</div>
   </div>
   
-  <div class="card" id="campoHarmonico">
-  </div>
+  <div class="card" id="campoHarmonico"></div>
 
   <div class="card">
     <div class="tabs">
@@ -145,35 +156,77 @@
     <div id="lista-favoritos" style="display:none;"></div>
   </div>
 
-  <footer>Cada clique gera uma progressão diferente para o estilo escolhido.</footer>
+  <footer>Inpirações ilimitadas para suas composições.</footer>
 </div>
 
 <script>
 const NOTAS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 
+const FREQUENCIAS = {
+  'C': 261.63, 'C#': 277.18, 'D': 293.66, 'D#': 311.13,
+  'E': 329.63, 'F': 349.23, 'F#': 369.99, 'G': 392.00,
+  'G#': 415.30, 'A': 440.00, 'A#': 466.16, 'B': 493.88
+};
+
 const ESCALAS = {
   maior: [
-    {grau:0,  qual:''},{grau:2,  qual:'m'},{grau:4,  qual:'m'},{grau:5,  qual:''},
-    {grau:7,  qual:''},{grau:9,  qual:'m'},{grau:11, qual:'dim'}
+    {grau:0, qual:''},{grau:2, qual:'m'},{grau:4, qual:'m'},{grau:5, qual:''},
+    {grau:7, qual:''},{grau:9, qual:'m'},{grau:11, qual:'dim'}
   ],
   menor: [
-    {grau:0,  qual:'m'},{grau:2,  qual:'dim'},{grau:3,  qual:''},{grau:5,  qual:'m'},
-    {grau:7,  qual:'m'},{grau:8,  qual:''},{grau:10, qual:''}
+    {grau:0, qual:'m'},{grau:2, qual:'dim'},{grau:3, qual:''},{grau:5, qual:'m'},
+    {grau:7, qual:'m'},{grau:8, qual:''},{grau:10, qual:''}
+  ],
+  menor_harmonica: [
+    {grau:0, qual:'m'},{grau:2, qual:'dim'},{grau:3, qual:'aug'},{grau:5, qual:'m'},
+    {grau:7, qual:''},{grau:8, qual:''},{grau:11, qual:'dim'}
+  ],
+  menor_melodica: [
+    {grau:0, qual:'m'},{grau:2, qual:'m'},{grau:3, qual:'aug'},{grau:5, qual:''},
+    {grau:7, qual:''},{grau:9, qual:'dim'},{grau:11, qual:'dim'}
+  ],
+  dorico: [
+    {grau:0, qual:'m'},{grau:2, qual:'m'},{grau:3, qual:''},{grau:5, qual:''},
+    {grau:7, qual:'m'},{grau:9, qual:'dim'},{grau:10, qual:''}
+  ],
+  mixolidio: [
+    {grau:0, qual:''},{grau:2, qual:'m'},{grau:4, qual:'dim'},{grau:5, qual:''},
+    {grau:7, qual:'m'},{grau:9, qual:'m'},{grau:10, qual:''}
+  ],
+  penta_maior: [
+    {grau:0, qual:''},{grau:2, qual:'m'},{grau:4, qual:'m'},{grau:7, qual:''},{grau:9, qual:'m'}
+  ],
+  penta_menor: [
+    {grau:0, qual:'m'},{grau:3, qual:''},{grau:5, qual:'m'},{grau:7, qual:'m'},{grau:10, qual:''}
+  ],
+  blues_escala: [
+    {grau:0, qual:'7'},{grau:3, qual:''},{grau:5, qual:'m'},{grau:6, qual:'dim'},{grau:7, qual:'7'},{grau:10, qual:''}
   ]
 };
 
-const ROMANOS_MAIOR = ['I','ii','iii','IV','V','vi','vii°'];
-const ROMANOS_MENOR = ['i','ii°','III','iv','v','VI','VII'];
+const ROMANOS = {
+  maior: ['I','ii','iii','IV','V','vi','vii°'],
+  menor: ['i','ii°','III','iv','v','VI','VII'],
+  menor_harmonica: ['i','ii°','III+','iv','V','VI','vii°'],
+  menor_melodica: ['i','ii','III+','IV','V','vi°','vii°'],
+  dorico: ['i','ii','III','IV','v','vi°','VII'],
+  mixolidio: ['I','ii','iii°','IV','v','vi','♭VII'],
+  penta_maior: ['I','ii','iii','V','vi'],
+  penta_menor: ['i','III','iv','v','VII'],
+  blues_escala: ['I7','III','iv','♭v°','V7','♭VII']
+};
 
 const EXTENSOES = {
-  jazz:   {'':'maj7', 'm':'m7', 'dim':'m7b5'},
+  jazz:   {'':'maj7', 'm':'m7', 'dim':'m7b5', 'aug':'maj7#5'},
   bossa:  {'':'maj7', 'm':'m7', 'dim':'m7b5'},
+  samba:  {'':'6', 'm':'m7', 'dim':'m7b5'},
+  lofi:   {'':'maj7', 'm':'m9', 'dim':'m7b5'},
   gospel: {'':'maj7', 'm':'m7', 'dim':'m7b5'},
   blues:  {'':'7', 'm':'m7', 'dim':'dim7'}
 };
 
-const BLUES_8  = [0,0,3,0,4,3,0,4];
-const BLUES_12 = [0,0,0,0,3,3,0,0,4,3,0,4];
+const BLUES_8  = [0,0,2,0,3,2,0,3];
+const BLUES_12 = [0,0,0,0,2,2,0,0,3,2,0,3];
 
 function nota(indiceBase, semitons){
   return NOTAS[(indiceBase + semitons + 120) % 12];
@@ -193,79 +246,57 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
   if (estilo === 'indie' && grauInfo.qual === '' && Math.random() < 0.30){
     sufixo = ['add9','sus2'][Math.floor(Math.random()*2)];
   }
-
   if (estilo === 'britpop' && grauInfo.qual === '' && Math.random() < 0.30){
     sufixo = ['sus2','sus4'][Math.floor(Math.random()*2)];
   }
-
+  if (estilo === 'reggae' && grauInfo.qual === '' && Math.random() < 0.30){
+    sufixo = '6';
+  }
+  if (estilo === 'metal' && Math.random() < 0.50){
+    sufixo = '5'; // Powerchord
+  }
   if (estilo === 'mpb_romantica' && grauInfo.qual === '' && Math.random() < 0.40){
     sufixo = ['maj7','6','9'][Math.floor(Math.random()*3)];
-  }
-
-  if (estilo === 'mpb_romantica' && grauInfo.qual === 'm' && Math.random() < 0.40){
-    sufixo = 'm7';
-  }
-
-  if (estilo === 'bluesrock' && grauInfo.qual === '' && Math.random() < 0.60){
-    sufixo = '7';
   }
 
   return raiz + sufixo;
 }
 
 function gerarRoman(idxGrau, escala){
-  const arrayRomanos = escala === 'maior' ? ROMANOS_MAIOR : ROMANOS_MENOR;
+  const arrayRomanos = ROMANOS[escala] || ROMANOS.maior;
   return arrayRomanos[idxGrau] || '';
 }
 
 function gerarCampoHarmonico(tomIndex, escala){
-  const graus = ESCALAS[escala];
+  const graus = ESCALAS[escala] || ESCALAS.maior;
   return graus.map(grauInfo => {
     const raiz = nota(tomIndex, grauInfo.grau);
     return raiz + grauInfo.qual;
   });
 }
 
-function gerarSequenciaDegraus(estilo, qtd){
+function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   if (estilo === 'blues'){
-    if (qtd <= 8) return BLUES_8.slice(0, qtd);
-    return BLUES_12.slice(0, qtd > 12 ? 12 : qtd);
+    if (qtd <= 8) return BLUES_8.map(x => x % tamanhoEscala).slice(0, qtd);
+    return BLUES_12.map(x => x % tamanhoEscala).slice(0, qtd > 12 ? 12 : qtd);
   }
 
   const progressosComuns = {
-    pop: [
-      [5,3,0,4], [0,4,5,3], [0,5,3,4], [3,0,4,5], [5,4,0,3]
-    ],
-    rock: [
-      [0,4,3,0], [5,3,0,4], [4,3,0,0], [3,4,0,5], [0,3,4,0]
-    ],
-    folk: [
-      [0,4,5,0], [5,3,0,4], [0,5,3,4], [3,0,4,0]
-    ],
-    gospel: [
-      [0,5,1,4], [3,4,0,5], [0,1,4,0], [5,1,4,0]
-    ],
-    jazz: [
-      [1,4,0,5], [2,5,1,4], [5,1,4,0], [3,1,4,0]
-    ],
-    bossa: [
-      [0,1,4,0], [5,1,4,0], [3,1,4,0], [0,5,1,4]
-    ],
-    indie: [
-      [5,3,0,4], [0,4,5,3], [3,0,5,4], [5,4,0,3], [0,5,3,4]
-    ],
-    britpop: [
-      [0,4,5,3], [0,3,4,0], [5,3,0,4], [3,4,0,5], [0,4,3,0]
-    ],
-    grunge: [
-      [0,5,3,4], [5,4,3,4], [0,3,5,4], [5,3,0,5], [0,5,4,3]
-    ],
-    mpb_romantica: [
-      [0,5,1,4], [5,1,4,0], [3,1,4,0], [0,1,5,4], [5,3,1,4]
-    ],
-    bluesrock: [
-      [0,0,3,0,4,3,0,4], [0,3,0,4,3,0,4,0], [0,0,4,3,0,4,3,0], [0,3,4,0,3,4,0,4]
-    ]
+    pop: [[0,4,5,3], [5,3,0,4], [0,5,3,4], [3,0,4,5]],
+    rock: [[0,4,3,0], [5,3,0,4], [4,3,0,0], [0,3,4,0]],
+    folk: [[0,4,5,0], [5,3,0,4], [0,5,3,4]],
+    gospel: [[0,5,1,4], [3,4,0,5], [0,1,4,0]],
+    jazz: [[1,4,0,5], [2,5,1,4], [5,1,4,0]],
+    bossa: [[0,1,4,0], [5,1,4,0], [3,1,4,0]],
+    samba: [[0,5,1,4], [1,4,0,5], [0,3,1,4]],
+    lofi: [[1,4,0,5], [3,4,0,5], [0,5,1,4]],
+    reggae: [[0,3,0,4], [0,4,3,4], [0,5,3,4]],
+    metal: [[0,5,3,4], [0,1,0,5], [0,6,5,3]],
+    indie: [[5,3,0,4], [0,4,5,3], [3,0,5,4]],
+    britpop: [[0,4,5,3], [0,3,4,0], [5,3,0,4]],
+    grunge: [[0,5,3,4], [5,4,3,4], [0,3,5,4]],
+    mpb_romantica: [[0,5,1,4], [5,1,4,0], [3,1,4,0]],
+    bluesrock: [[0,0,3,0], [0,3,0,4]]
   };
 
   const base = progressosComuns[estilo] || progressosComuns.pop;
@@ -273,15 +304,60 @@ function gerarSequenciaDegraus(estilo, qtd){
   const seq = [];
 
   while (seq.length < qtd){
-    seq.push(...modelo);
+    // Aplica o módulo para garantir que o grau caiba na escala selecionada
+    seq.push(...modelo.map(idx => idx % tamanhoEscala));
   }
 
   return seq.slice(0, qtd);
 }
 
+// ---- Sintetizador Web Audio API (Ouvir Progressão) ----
+let audioCtx = null;
+function tocarAcorde(nomeAcorde){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  const notaBaseMatch = nomeAcorde.match(/^[A-G][#]?/);
+  if(!notaBaseMatch) return;
+  
+  const notaBase = notaBaseMatch[0];
+  const freqBase = FREQUENCIAS[notaBase] || 261.63;
+  
+  // Notas da tríade aproximada
+  let intervalos = [0, 4, 7]; 
+  if(nomeAcorde.includes('m') && !nomeAcorde.includes('maj')) intervalos = [0, 3, 7];
+  if(nomeAcorde.includes('dim')) intervalos = [0, 3, 6];
+  if(nomeAcorde.includes('aug')) intervalos = [0, 4, 8];
+  if(nomeAcorde.includes('5')) intervalos = [0, 7];
+
+  intervalos.forEach(semitons => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.value = freqBase * Math.pow(2, semitons / 12);
+    
+    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1.2);
+  });
+}
+
+function tocarProgressao(acordes){
+  acordes.forEach((acorde, index) => {
+    setTimeout(() => {
+      tocarAcorde(acorde);
+    }, index * 900);
+  });
+}
+
 // ---- Histórico e Favoritos (localStorage) ----
-const LS_HIST = 'progressoes_historico';
-const LS_FAV = 'progressoes_favoritos';
+const LS_HIST = 'progressoes_historico_v2';
+const LS_FAV = 'progressoes_favoritos_v2';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
 function salvar(chave,dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
 
@@ -293,20 +369,25 @@ function ehFavorito(item){ return favoritos.some(f => idDe(f)===idDe(item)); }
 
 function renderResultado(item){
   document.getElementById('resultado').innerHTML = `
-    <div class="label">Progressão em ${item.tom} ${item.escala} — estilo ${item.estilo} (${item.acordes.length} acordes)</div>
-    <div class="chords">${item.acordes.map(a => `<div class="chord">${a}</div>`).join('')}</div>
+    <div class="label">Progressão em ${item.tom} ${item.escala} — ${item.estilo} (${item.acordes.length} acordes)</div>
+    <div class="chords">${item.acordes.map(a => `<div class="chord" onclick="tocarAcorde('${a}')">${a}</div>`).join('')}</div>
     <div class="roman">${item.romanos.join(' - ')}</div>
     <div class="acoes">
+      <button id="btn-tocar">▶ Ouvir</button>
       <button id="btn-copiar">📋 Copiar</button>
       <button id="btn-favoritar">${ehFavorito(item) ? '⭐ Favoritado' : '☆ Favoritar'}</button>
     </div>
   `;
+
+  document.getElementById('btn-tocar').addEventListener('click', () => tocarProgressao(item.acordes));
+  
   document.getElementById('btn-copiar').addEventListener('click', () => {
     navigator.clipboard.writeText(item.acordes.join(' - '));
     const btn = document.getElementById('btn-copiar');
     btn.textContent = '✅ Copiado';
     setTimeout(() => { btn.textContent = '📋 Copiar'; }, 1500);
   });
+
   document.getElementById('btn-favoritar').addEventListener('click', () => {
     if (ehFavorito(item)){
       favoritos = favoritos.filter(f => idDe(f)!==idDe(item));
@@ -322,7 +403,6 @@ function renderResultado(item){
 function linhaItem(item, mostrarRemover){
   const div = document.createElement('div');
   div.className = 'item-lista';
-  
   const iconeExibicao = mostrarRemover ? '✕' : (ehFavorito(item) ? '⭐' : '☆');
 
   div.innerHTML = `
@@ -388,9 +468,9 @@ document.getElementById('gerar').addEventListener('click', () => {
   const tom = document.getElementById('tom').value;
   const qtd = parseInt(document.getElementById('qtd').value, 10);
   const tomIndex = NOTAS.indexOf(tom);
-  const escalaGraus = ESCALAS[escala];
+  const escalaGraus = ESCALAS[escala] || ESCALAS.maior;
 
-  const sequencia = gerarSequenciaDegraus(estilo, qtd);
+  const sequencia = gerarSequenciaDegraus(estilo, qtd, escalaGraus.length);
   const acordes = sequencia.map(idx => gerarAcorde(tomIndex, escalaGraus[idx], estilo));
   const romanos = sequencia.map(idx => gerarRoman(idx, escala));
   const campo = gerarCampoHarmonico(tomIndex, escala);
@@ -402,9 +482,9 @@ document.getElementById('gerar').addEventListener('click', () => {
 
   renderResultado(item);
   document.getElementById('campoHarmonico').innerHTML = `
-  <div class="label">Campo Harmônico</div>
+  <div class="label">Campo Harmônico (${escala})</div>
   <div class="chords">
-    ${campo.map(a => `<div class="chord">${a}</div>`).join('')}
+    ${campo.map(a => `<div class="chord" onclick="tocarAcorde('${a}')">${a}</div>`).join('')}
   </div>
 `;
   renderListas();
