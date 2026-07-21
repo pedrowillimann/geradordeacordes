@@ -131,8 +131,10 @@
 
   <div class="card" id="resultado">
     <div class="empty">Clique em "Gerar" para começar 🎶</div>
+    
   </div>
-
+<div class="card" id="campoHarmonico">
+</div>
   <div class="card">
     <div class="tabs">
       <button id="tab-historico" class="ativo">Histórico</button>
@@ -222,6 +224,15 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
 }
 function gerarRoman(idxGrau, escala){
   return escala === 'maior' ? ROMANOS_MAIOR[idxGrau] : ROMANOS_MENOR[idxGrau];
+}
+  function gerarCampoHarmonico(tomIndex, escala){
+
+  const graus = ESCALAS[escala];
+
+  return graus.map(grauInfo => {
+    const raiz = nota(tomIndex, grauInfo.grau);
+    return raiz + grauInfo.qual;
+  });
 }
 function escolherPeso(opcoes){
   const total = opcoes.reduce((s,o) => s + o[1], 0);
@@ -448,6 +459,7 @@ document.getElementById('gerar').addEventListener('click', () => {
   const sequencia = gerarSequenciaDegraus(estilo, qtd);
   const acordes = sequencia.map(idx => gerarAcorde(tomIndex, escalaGraus[idx], estilo));
   const romanos = sequencia.map(idx => gerarRoman(idx, escala));
+  const campo = gerarCampoHarmonico(tomIndex, escala);
 
   const item = { estilo, escala, tom, acordes, romanos, ts: Date.now() };
   historico.unshift(item);
@@ -455,6 +467,12 @@ document.getElementById('gerar').addEventListener('click', () => {
   salvar(LS_HIST, historico);
 
   renderResultado(item);
+  document.getElementById('campoHarmonico').innerHTML = `
+  <div class="label">Campo Harmônico</div>
+  <div class="chords">
+    ${campo.map(a => `<div class="chord">${a}</div>`).join('')}
+  </div>
+`;
   renderListas();
 });
 
