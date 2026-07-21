@@ -97,7 +97,12 @@
       <option value="blues">Blues</option>
       <option value="bossa">Bossa Nova / MPB</option>
       <option value="gospel">Gospel</option>
-      <option value="folk">Folk / Sertanejo</option>
+      <option value="folk">Folk</option>
+      <option value="indie">Indie</option>
+      <option value="britpop">Britpop</option>
+      <option value="grunge">Grunge</option>
+      <option value="mpb_romantica">MPB Romântica</option>
+      <option value="bluesrock">Blues Rock</option>
     </select>
 
     <label for="escala">Escala</label>
@@ -180,12 +185,39 @@ function nota(indiceBase, semitons){
   return NOTAS[(indiceBase + semitons + 120) % 12];
 }
 function gerarAcorde(tomIndex, grauInfo, estilo){
+
   const raiz = nota(tomIndex, grauInfo.grau);
+
   let sufixo = grauInfo.qual;
+
   const ext = EXTENSOES[estilo];
+
   if (ext && Math.random() < 0.7 && ext[grauInfo.qual] !== undefined){
     sufixo = ext[grauInfo.qual];
   }
+
+  // NOVOS ESTILOS
+
+  if (estilo === 'indie' && grauInfo.qual === '' && Math.random() < 0.30){
+    sufixo = ['add9','sus2'][Math.floor(Math.random()*2)];
+  }
+
+  if (estilo === 'britpop' && grauInfo.qual === '' && Math.random() < 0.30){
+    sufixo = ['sus2','sus4'][Math.floor(Math.random()*2)];
+  }
+
+  if (estilo === 'mpb_romantica' && grauInfo.qual === '' && Math.random() < 0.40){
+    sufixo = ['maj7','6','9'][Math.floor(Math.random()*3)];
+  }
+
+  if (estilo === 'mpb_romantica' && grauInfo.qual === 'm' && Math.random() < 0.40){
+    sufixo = 'm7';
+  }
+
+  if (estilo === 'bluesrock' && grauInfo.qual === '' && Math.random() < 0.60){
+    sufixo = '7';
+  }
+
   return raiz + sufixo;
 }
 function gerarRoman(idxGrau, escala){
@@ -250,7 +282,46 @@ function gerarSequenciaDegraus(estilo, qtd){
       [5,1,4,0],
       [3,1,4,0],
       [0,5,1,4]
-    ]
+    ],
+      
+    indie: [
+  [5,3,0,4],     // Am F C G
+  [0,4,5,3],     // C G Am F
+  [3,0,5,4],     // F C Am G
+  [5,4,0,3],     // Am G C F
+  [0,5,3,4]
+],
+
+britpop: [
+  [0,4,5,3],     // Oasis
+  [0,3,4,0],
+  [5,3,0,4],
+  [3,4,0,5],
+  [0,4,3,0]
+],
+
+grunge: [
+  [0,6,3,4],
+  [5,6,3,4],
+  [0,3,6,4],
+  [5,3,0,6],
+  [0,5,4,3]
+],
+
+mpb_romantica: [
+  [0,5,1,4],
+  [5,1,4,0],
+  [3,1,4,0],
+  [0,1,5,4],
+  [5,3,1,4]
+],
+
+bluesrock: [
+  [0,0,3,0,4,3,0,4],
+  [0,3,0,4,3,0,4,0],
+  [0,0,4,3,0,4,3,0],
+  [0,3,4,0,3,4,0,4]
+]
   };
 
   const base = progressosComuns[estilo] || progressosComuns.pop;
