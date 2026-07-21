@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Progressão de Acordes Ultra Pro</title>
+<title>Gerador de Progressão de Acordes Ultra Pro (Bugfix)</title>
 <style>
   :root{
     --card:#1a1d24;
@@ -199,11 +199,12 @@
 
 <script>
 const NOTAS = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTAS_BEMOL = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 
 const FREQUENCIAS = {
-  'C': 261.63, 'C#': 277.18, 'D': 293.66, 'D#': 311.13,
-  'E': 329.63, 'F': 349.23, 'F#': 369.99, 'G': 392.00,
-  'G#': 415.30, 'A': 440.00, 'A#': 466.16, 'B': 493.88
+  'C': 261.63, 'C#': 277.18, 'Db': 277.18, 'D': 293.66, 'D#': 311.13, 'Eb': 311.13,
+  'E': 329.63, 'F': 349.23, 'F#': 369.99, 'Gb': 369.99, 'G': 392.00,
+  'G#': 415.30, 'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
 };
 
 const ESCALAS = {
@@ -300,47 +301,51 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
   return raiz + sufixo;
 }
 
-// --- RECURSOS AVANÇADOS ---
+// --- RECURSOS AVANÇADOS CORRIGIDOS ---
 
 function aplicarInversao(acorde){
   if (acorde.includes('/') || acorde.includes('5')) return acorde;
   
-  const match = acorde.match(/^[A-G][#]?/);
+  const match = acorde.match(/^[A-G][#b]?/);
   if (!match) return acorde;
 
   const raiz = match[0];
-  const idxRaiz = NOTAS.indexOf(raiz);
+  let idxRaiz = NOTAS.indexOf(raiz);
+  if (idxRaiz === -1) idxRaiz = NOTAS_BEMOL.indexOf(raiz);
+
   const ehMenor = acorde.includes('m') && !acorde.includes('maj');
+  const semitonsTerca = ehMenor ? 3 : 4;
   
-  // Pega a terça (3 semitons para menor, 4 para maior)
-  const terca = NOTAS[(idxRaiz + (ehMenor ? 3 : 4)) % 12];
+  // Usa notação enarmônica bemolizada para terças menores (ex: Eb em vez de D#)
+  const terca = ehMenor ? NOTAS_BEMOL[(idxRaiz + semitonsTerca) % 12] : NOTAS[(idxRaiz + semitonsTerca) % 12];
   return `${acorde}/${terca}`;
 }
 
 function aplicarEmprestimoHarmonico(tomIndex, escala){
-  if (escala !== 'maior') return null; // Mais forte em tom maior
+  if (escala !== 'maior') return null;
 
   const opcoes = [
-    { roman: 'iv', semitons: 5, sufixo: 'm' },      // iv menor (ex: Fm em C)
+    { roman: 'iv', semitons: 5, sufixo: 'm' },     // iv menor (ex: Fm em C)
     { roman: '♭VI', semitons: 8, sufixo: '' },     // ♭VI maior (ex: Ab em C)
     { roman: '♭VII', semitons: 10, sufixo: '' }    // ♭VII maior (ex: Bb em C)
   ];
 
   const esc = opcoes[Math.floor(Math.random() * opcoes.length)];
-  const raiz = nota(tomIndex, esc.semitons);
+  const raiz = NOTAS_BEMOL[(tomIndex + esc.semitons) % 12];
   return { acorde: raiz + esc.sufixo, roman: esc.roman };
 }
 
 function gerarDominanteSecundario(acordeAlvo){
-  const match = acordeAlvo.match(/^[A-G][#]?/);
+  const match = acordeAlvo.match(/^[A-G][#b]?/);
   if (!match) return null;
 
   const raizAlvo = match[0];
-  const idxAlvo = NOTAS.indexOf(raizAlvo);
-  
-  // Dominante fica 7 semitons acima (5ª justa)
+  let idxAlvo = NOTAS.indexOf(raizAlvo);
+  if(idxAlvo === -1) idxAlvo = NOTAS_BEMOL.indexOf(raizAlvo);
+
+  // Dominante fica uma 5ª justa acima do acorde-alvo (7 semitons)
   const raizDom = NOTAS[(idxAlvo + 7) % 12];
-  return { acorde: raizDom + '7', roman: `V7` };
+  return { acorde: raizDom + '7', roman: 'V7' };
 }
 
 function gerarRoman(idxGrau, escala){
@@ -391,22 +396,29 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   return seq.slice(0, qtd);
 }
 
-// ---- Sintetizador Web Audio API ----
+// ---- Sintetizador Web Audio API (Tratamento Fiel de Extensões) ----
 let audioCtx = null;
 function tocarAcorde(nomeAcorde){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   
-  const notaBaseMatch = nomeAcorde.match(/^[A-G][#]?/);
+  const notaBaseMatch = nomeAcorde.match(/^[A-G][#b]?/);
   if(!notaBaseMatch) return;
   
   const notaBase = notaBaseMatch[0];
   const freqBase = FREQUENCIAS[notaBase] || 261.63;
   
+  // Tríades básicas
   let intervalos = [0, 4, 7]; 
   if(nomeAcorde.includes('m') && !nomeAcorde.includes('maj')) intervalos = [0, 3, 7];
-  if(nomeAcorde.includes('dim')) intervalos = [0, 3, 6];
+  if(nomeAcorde.includes('dim') || nomeAcorde.includes('m7b5')) intervalos = [0, 3, 6];
   if(nomeAcorde.includes('aug')) intervalos = [0, 4, 8];
   if(nomeAcorde.includes('5')) intervalos = [0, 7];
+
+  // Adiciona extensões ao som sintetizado
+  if (nomeAcorde.includes('maj7')) intervalos.push(11);
+  else if (nomeAcorde.includes('7')) intervalos.push(10);
+  if (nomeAcorde.includes('m9') || nomeAcorde.includes('add9') || nomeAcorde.includes('9')) intervalos.push(14);
+  if (nomeAcorde.includes('6')) intervalos.push(9);
 
   intervalos.forEach(semitons => {
     const osc = audioCtx.createOscillator();
@@ -415,7 +427,7 @@ function tocarAcorde(nomeAcorde){
     osc.type = 'triangle';
     osc.frequency.value = freqBase * Math.pow(2, semitons / 12);
     
-    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
     
     osc.connect(gain);
@@ -435,8 +447,8 @@ function tocarProgressao(acordes){
 }
 
 // ---- Histórico e Favoritos ----
-const LS_HIST = 'progressoes_historico_v3';
-const LS_FAV = 'progressoes_favoritos_v3';
+const LS_HIST = 'progressoes_historico_v4';
+const LS_FAV = 'progressoes_favoritos_v4';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
 function salvar(chave,dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
 
@@ -446,28 +458,48 @@ let favoritos = carregar(LS_FAV);
 function idDe(item){ return item.tom+'|'+item.escala+'|'+item.estilo+'|'+item.acordes.join(','); }
 function ehFavorito(item){ return favoritos.some(f => idDe(f)===idDe(item)); }
 
+// Renderização segura contra XSS usando DOM nativo
 function renderResultado(item){
-  document.getElementById('resultado').innerHTML = `
-    <div class="label">Progressão em ${item.tom} ${item.escala} — ${item.estilo} (${item.acordes.length} acordes)</div>
-    <div class="chords">${item.acordes.map(a => `<div class="chord" onclick="tocarAcorde('${a}')">${a}</div>`).join('')}</div>
-    <div class="roman">${item.romanos.join(' - ')}</div>
-    <div class="acoes">
-      <button id="btn-tocar">▶ Ouvir</button>
-      <button id="btn-copiar">📋 Copiar</button>
-      <button id="btn-favoritar">${ehFavorito(item) ? '⭐ Favoritado' : '☆ Favoritar'}</button>
-    </div>
-  `;
+  const resDiv = document.getElementById('resultado');
+  resDiv.textContent = ''; // Limpa conteúdo anterior seguro
 
-  document.getElementById('btn-tocar').addEventListener('click', () => tocarProgressao(item.acordes));
-  
-  document.getElementById('btn-copiar').addEventListener('click', () => {
-    navigator.clipboard.writeText(item.acordes.join(' - '));
-    const btn = document.getElementById('btn-copiar');
-    btn.textContent = '✅ Copiado';
-    setTimeout(() => { btn.textContent = '📋 Copiar'; }, 1500);
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = `Progressão em ${item.tom} ${item.escala} — ${item.estilo} (${item.acordes.length} acordes)`;
+
+  const chordsDiv = document.createElement('div');
+  chordsDiv.className = 'chords';
+
+  item.acordes.forEach(a => {
+    const chord = document.createElement('div');
+    chord.className = 'chord';
+    chord.textContent = a;
+    chord.addEventListener('click', () => tocarAcorde(a));
+    chordsDiv.appendChild(chord);
   });
 
-  document.getElementById('btn-favoritar').addEventListener('click', () => {
+  const romanDiv = document.createElement('div');
+  romanDiv.className = 'roman';
+  romanDiv.textContent = item.romanos.join(' - ');
+
+  const acoes = document.createElement('div');
+  acoes.className = 'acoes';
+
+  const btnTocar = document.createElement('button');
+  btnTocar.textContent = '▶ Ouvir';
+  btnTocar.onclick = () => tocarProgressao(item.acordes);
+
+  const btnCopiar = document.createElement('button');
+  btnCopiar.textContent = '📋 Copiar';
+  btnCopiar.onclick = () => {
+    navigator.clipboard.writeText(item.acordes.join(' - '));
+    btnCopiar.textContent = '✅ Copiado';
+    setTimeout(() => { btnCopiar.textContent = '📋 Copiar'; }, 1500);
+  };
+
+  const btnFav = document.createElement('button');
+  btnFav.textContent = ehFavorito(item) ? '⭐ Favoritado' : '☆ Favoritar';
+  btnFav.onclick = () => {
     if (ehFavorito(item)){
       favoritos = favoritos.filter(f => idDe(f)!==idDe(item));
     } else {
@@ -476,22 +508,40 @@ function renderResultado(item){
     salvar(LS_FAV, favoritos);
     renderResultado(item);
     renderListas();
-  });
+  };
+
+  acoes.appendChild(btnTocar);
+  acoes.appendChild(btnCopiar);
+  acoes.appendChild(btnFav);
+
+  resDiv.appendChild(label);
+  resDiv.appendChild(chordsDiv);
+  resDiv.appendChild(romanDiv);
+  resDiv.appendChild(acoes);
 }
 
 function linhaItem(item, mostrarRemover){
   const div = document.createElement('div');
   div.className = 'item-lista';
-  const iconeExibicao = mostrarRemover ? '✕' : (ehFavorito(item) ? '⭐' : '☆');
 
-  div.innerHTML = `
-    <div class="info">
-      <span>${item.acordes.join(' - ')}</span>
-      <span class="sub">${item.tom} ${item.escala} · ${item.estilo}</span>
-    </div>
-    <span class="icone">${iconeExibicao}</span>
-  `;
-  div.querySelector('.icone').addEventListener('click', (e) => {
+  const info = document.createElement('div');
+  info.className = 'info';
+
+  const mainSpan = document.createElement('span');
+  mainSpan.textContent = item.acordes.join(' - ');
+
+  const subSpan = document.createElement('span');
+  subSpan.className = 'sub';
+  subSpan.textContent = `${item.tom} ${item.escala} · ${item.estilo}`;
+
+  info.appendChild(mainSpan);
+  info.appendChild(subSpan);
+
+  const icone = document.createElement('span');
+  icone.className = 'icone';
+  icone.textContent = mostrarRemover ? '✕' : (ehFavorito(item) ? '⭐' : '☆');
+
+  icone.addEventListener('click', (e) => {
     e.stopPropagation();
     if (mostrarRemover){
       favoritos = favoritos.filter(f => idDe(f)!==idDe(item));
@@ -506,6 +556,9 @@ function linhaItem(item, mostrarRemover){
     renderListas();
     renderResultado(item);
   });
+
+  div.appendChild(info);
+  div.appendChild(icone);
   div.addEventListener('click', () => renderResultado(item));
   return div;
 }
@@ -513,16 +566,23 @@ function linhaItem(item, mostrarRemover){
 function renderListas(){
   const listaHist = document.getElementById('lista-historico');
   const listaFav = document.getElementById('lista-favoritos');
-  listaHist.innerHTML = '';
-  listaFav.innerHTML = '';
+  listaHist.textContent = '';
+  listaFav.textContent = '';
 
   if (historico.length === 0){
-    listaHist.innerHTML = '<div class="vazio">Nenhuma progressão gerada ainda.</div>';
+    const vazio = document.createElement('div');
+    vazio.className = 'vazio';
+    vazio.textContent = 'Nenhuma progressão gerada ainda.';
+    listaHist.appendChild(vazio);
   } else {
     historico.slice(0,10).forEach(item => listaHist.appendChild(linhaItem(item, false)));
   }
+
   if (favoritos.length === 0){
-    listaFav.innerHTML = '<div class="vazio">Nenhum favorito ainda.</div>';
+    const vazio = document.createElement('div');
+    vazio.className = 'vazio';
+    vazio.textContent = 'Nenhum favorito ainda.';
+    listaFav.appendChild(vazio);
   } else {
     favoritos.forEach(item => listaFav.appendChild(linhaItem(item, true)));
   }
@@ -560,23 +620,24 @@ document.getElementById('gerar').addEventListener('click', () => {
   let romanos = [];
 
   for(let i = 0; i < sequencia.length; i++){
+    if(acordes.length >= qtd) break;
+
     const idx = sequencia[i];
     let acorde = gerarAcorde(tomIndex, escalaGraus[idx], estilo);
     let roman = gerarRoman(idx, escala);
 
     const rand = Math.random();
 
-    // 1. Dominante Secundário (insere antes se houver espaço)
-    if(permitirDominantes && i > 0 && rand < 0.20 && !acordes[acordes.length-1].includes('7')){
+    // Dominantes Secundários (Apenas insere se HOUVER ESPAÇO para ele e o acorde de resolução)
+    if(permitirDominantes && i > 0 && rand < 0.20 && (acordes.length + 2 <= qtd) && !acordes[acordes.length-1].includes('7')){
       const domSec = gerarDominanteSecundario(acorde);
       if(domSec){
         acordes.push(domSec.acorde);
         romanos.push(`V7/${roman}`);
-        if(acordes.length >= qtd) break;
       }
     }
 
-    // 2. Empréstimo Harmônico (troca o acorde atual por um fora da escala)
+    // Empréstimo Harmônico
     if(permitirEmprestimo && rand > 0.80 && escala === 'maior'){
       const emp = aplicarEmprestimoHarmonico(tomIndex, escala);
       if(emp){
@@ -585,15 +646,13 @@ document.getElementById('gerar').addEventListener('click', () => {
       }
     }
 
-    // 3. Inversões (Slash Chords)
+    // Inversões (Slash Chords)
     if(permitirInversoes && rand > 0.50 && rand <= 0.75){
       acorde = aplicarInversao(acorde);
     }
 
     acordes.push(acorde);
     romanos.push(roman);
-
-    if(acordes.length >= qtd) break;
   }
 
   const campo = gerarCampoHarmonico(tomIndex, escala);
@@ -604,12 +663,30 @@ document.getElementById('gerar').addEventListener('click', () => {
   salvar(LS_HIST, historico);
 
   renderResultado(item);
-  document.getElementById('campoHarmonico').innerHTML = `
-    <div class="label">Campo Harmônico (${escala})</div>
-    <div class="chords">
-      ${campo.map(a => `<div class="chord" onclick="tocarAcorde('${a}')">${a}</div>`).join('')}
-    </div>
-  `;
+
+  // Exibição didática adequada para pentatônicas/blues vs escalas normais
+  const campoDiv = document.getElementById('campoHarmonico');
+  campoDiv.textContent = '';
+  
+  const tituloCampo = document.createElement('div');
+  tituloCampo.className = 'label';
+  tituloCampo.textContent = escala.includes('penta') || escala.includes('blues') 
+    ? `Notas / Acordes da Escala (${escala})` 
+    : `Campo Harmônico (${escala})`;
+  
+  const chordsCampoDiv = document.createElement('div');
+  chordsCampoDiv.className = 'chords';
+  campo.forEach(a => {
+    const chord = document.createElement('div');
+    chord.className = 'chord';
+    chord.textContent = a;
+    chord.onclick = () => tocarAcorde(a);
+    chordsCampoDiv.appendChild(chord);
+  });
+
+  campoDiv.appendChild(tituloCampo);
+  campoDiv.appendChild(chordsCampoDiv);
+
   renderListas();
 });
 
