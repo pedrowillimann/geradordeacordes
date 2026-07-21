@@ -207,33 +207,64 @@ function gerarSequenciaDegraus(estilo, qtd){
     return BLUES_12.slice(0, qtd > 12 ? 12 : qtd);
   }
 
-  const tabela = TRANSICOES[estilo];
+  const progressosComuns = {
+    pop: [
+      [5,3,0,4],      // vi IV I V
+      [0,4,5,3],      // I V vi IV
+      [0,5,3,4],      // I vi IV V
+      [3,0,4,5],      // IV I V vi
+      [5,4,0,3]
+    ],
 
-  // Inícios mais comuns em músicas reais
-  const INICIOS = [0, 3, 4, 5]; // I, IV, V, vi
+    rock: [
+      [0,4,3,0],
+      [5,3,0,4],
+      [4,3,0,0],
+      [3,4,0,5],
+      [0,3,4,0]
+    ],
 
-  // Finais comuns
-  const FINAIS = [0, 4, 5, 3]; // I, V, vi, IV
+    folk: [
+      [0,4,5,0],
+      [5,3,0,4],
+      [0,5,3,4],
+      [3,0,4,0]
+    ],
 
-  const inicio =
-    INICIOS[Math.floor(Math.random() * INICIOS.length)];
+    gospel: [
+      [0,5,1,4],
+      [3,4,0,5],
+      [0,1,4,0],
+      [5,1,4,0]
+    ],
 
-  const seq = [inicio];
+    jazz: [
+      [1,4,0,5],
+      [2,5,1,4],
+      [5,1,4,0],
+      [3,1,4,0]
+    ],
 
-  for (let i = 1; i < qtd - 1; i++) {
+    bossa: [
+      [0,1,4,0],
+      [5,1,4,0],
+      [3,1,4,0],
+      [0,5,1,4]
+    ]
+  };
 
-    const atual = seq[seq.length - 1];
-    const opcoes = tabela[atual] || [[0, 1]];
+  const base = progressosComuns[estilo] || progressosComuns.pop;
 
-    seq.push(escolherPeso(opcoes));
+  const modelo =
+    base[Math.floor(Math.random() * base.length)];
+
+  const seq = [];
+
+  while (seq.length < qtd){
+    seq.push(...modelo);
   }
 
-  const final =
-    FINAIS[Math.floor(Math.random() * FINAIS.length)];
-
-  seq.push(final);
-
-  return seq;
+  return seq.slice(0, qtd);
 }
 
 // ---- Histórico e Favoritos (localStorage) ----
