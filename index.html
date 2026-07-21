@@ -201,18 +201,38 @@ function escolherPeso(opcoes){
   return opcoes[0][0];
 }
 function gerarSequenciaDegraus(estilo, qtd){
+
   if (estilo === 'blues'){
     if (qtd <= 8) return BLUES_8.slice(0, qtd);
     return BLUES_12.slice(0, qtd > 12 ? 12 : qtd);
   }
+
   const tabela = TRANSICOES[estilo];
-  const seq = [0];
-  for (let i = 1; i < qtd; i++){
-    if (i === qtd - 1){ seq.push(0); continue; }
+
+  // Inícios mais comuns em músicas reais
+  const INICIOS = [0, 3, 4, 5]; // I, IV, V, vi
+
+  // Finais comuns
+  const FINAIS = [0, 4, 5, 3]; // I, V, vi, IV
+
+  const inicio =
+    INICIOS[Math.floor(Math.random() * INICIOS.length)];
+
+  const seq = [inicio];
+
+  for (let i = 1; i < qtd - 1; i++) {
+
     const atual = seq[seq.length - 1];
-    const opcoes = tabela[atual] || [[0,1]];
+    const opcoes = tabela[atual] || [[0, 1]];
+
     seq.push(escolherPeso(opcoes));
   }
+
+  const final =
+    FINAIS[Math.floor(Math.random() * FINAIS.length)];
+
+  seq.push(final);
+
   return seq;
 }
 
