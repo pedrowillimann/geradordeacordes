@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Progressão de Acordes Pro</title>
+<title>Gerador de Progressão de Acordes Ultra Pro</title>
 <style>
   :root{
     --card:#1a1d24;
@@ -24,7 +24,7 @@
     justify-content:center;
     padding:24px 16px;
   }
-  .app{ width:100%; max-width:440px; }
+  .app{ width:100%; max-width:460px; }
   h1{ font-size:1.4rem; text-align:center; margin-bottom:4px; }
   p.subtitle{ text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 24px; }
   .card{
@@ -42,6 +42,29 @@
     font-size:1rem; appearance:none; -webkit-appearance:none;
   }
   select:focus{ outline:none; border-color:var(--accent); }
+  
+  .checkbox-group{
+    margin-top:16px;
+    padding:12px;
+    background:#12151c;
+    border-radius:10px;
+    border:1px solid var(--border);
+  }
+  .checkbox-group legend{
+    font-size:0.8rem;
+    color:var(--muted);
+    padding:0 4px;
+  }
+  .checkbox-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:0.85rem;
+    margin-top:8px;
+    cursor:pointer;
+  }
+  .checkbox-item input{ accent-color:var(--accent); cursor:pointer; }
+
   button#gerar{
     width:100%; margin-top:22px; padding:15px; border:none; border-radius:12px;
     background:linear-gradient(135deg,var(--accent),var(--accent2));
@@ -50,12 +73,14 @@
   }
   button#gerar:active{ transform:scale(0.97); opacity:0.9; }
   #resultado{ text-align:center; }
-  .label{ font-size:0.8rem; color:var(--muted); margin-bottom:10px; }
+  .label{ font-size:0.88rem; color:var(--muted); margin-bottom:10px; }
   .chords{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:10px; }
   .chord{
     background:#12151c; border:1px solid var(--border); border-radius:10px;
-    padding:10px 14px; font-size:1.15rem; font-weight:700; min-width:52px; text-align:center;
+    padding:10px 14px; font-size:1.1rem; font-weight:700; min-width:52px; text-align:center;
+    cursor:pointer; transition:border-color 0.2s;
   }
+  .chord:hover{ border-color:var(--accent2); }
   .roman{ font-size:0.75rem; color:var(--muted); margin-bottom:12px; }
   .empty{ color:var(--muted); font-size:0.9rem; padding:20px 0; }
   .acoes{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
@@ -85,8 +110,8 @@
 </head>
 <body>
 <div class="app">
-  <h1>🎸 Gerador de Progressão Pro</h1>
-  <p class="subtitle">Escolha estilo, escala, tom e quantidade — depois toque e crie!</p>
+  <h1>🎸 Gerador de Progressão Ultra</h1>
+  <p class="subtitle">Escolha estilo, escala e recursos avançados para compor!</p>
 
   <div class="card">
     <label for="estilo">Estilo Musical</label>
@@ -138,6 +163,19 @@
       <option value="12">12</option>
     </select>
 
+    <fieldset class="checkbox-group">
+      <legend>Recursos Avançados</legend>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-inversoes" checked> Inversões de Acordes (C/E, G/B)
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-emprestimo" checked> Empréstimo Harmônico (iv, ♭VI, ♭VII)
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-dominantes" checked> Dominantes Secundários (V7/X)
+      </label>
+    </fieldset>
+
     <button id="gerar">🎲 Gerar Progressão</button>
   </div>
 
@@ -156,7 +194,7 @@
     <div id="lista-favoritos" style="display:none;"></div>
   </div>
 
-  <footer>Inpirações ilimitadas para suas composições.</footer>
+  <footer>Inspirações ilimitadas para suas composições.</footer>
 </div>
 
 <script>
@@ -253,13 +291,56 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
     sufixo = '6';
   }
   if (estilo === 'metal' && Math.random() < 0.50){
-    sufixo = '5'; // Powerchord
+    sufixo = '5';
   }
   if (estilo === 'mpb_romantica' && grauInfo.qual === '' && Math.random() < 0.40){
     sufixo = ['maj7','6','9'][Math.floor(Math.random()*3)];
   }
 
   return raiz + sufixo;
+}
+
+// --- RECURSOS AVANÇADOS ---
+
+function aplicarInversao(acorde){
+  if (acorde.includes('/') || acorde.includes('5')) return acorde;
+  
+  const match = acorde.match(/^[A-G][#]?/);
+  if (!match) return acorde;
+
+  const raiz = match[0];
+  const idxRaiz = NOTAS.indexOf(raiz);
+  const ehMenor = acorde.includes('m') && !acorde.includes('maj');
+  
+  // Pega a terça (3 semitons para menor, 4 para maior)
+  const terca = NOTAS[(idxRaiz + (ehMenor ? 3 : 4)) % 12];
+  return `${acorde}/${terca}`;
+}
+
+function aplicarEmprestimoHarmonico(tomIndex, escala){
+  if (escala !== 'maior') return null; // Mais forte em tom maior
+
+  const opcoes = [
+    { roman: 'iv', semitons: 5, sufixo: 'm' },      // iv menor (ex: Fm em C)
+    { roman: '♭VI', semitons: 8, sufixo: '' },     // ♭VI maior (ex: Ab em C)
+    { roman: '♭VII', semitons: 10, sufixo: '' }    // ♭VII maior (ex: Bb em C)
+  ];
+
+  const esc = opcoes[Math.floor(Math.random() * opcoes.length)];
+  const raiz = nota(tomIndex, esc.semitons);
+  return { acorde: raiz + esc.sufixo, roman: esc.roman };
+}
+
+function gerarDominanteSecundario(acordeAlvo){
+  const match = acordeAlvo.match(/^[A-G][#]?/);
+  if (!match) return null;
+
+  const raizAlvo = match[0];
+  const idxAlvo = NOTAS.indexOf(raizAlvo);
+  
+  // Dominante fica 7 semitons acima (5ª justa)
+  const raizDom = NOTAS[(idxAlvo + 7) % 12];
+  return { acorde: raizDom + '7', roman: `V7` };
 }
 
 function gerarRoman(idxGrau, escala){
@@ -304,14 +385,13 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   const seq = [];
 
   while (seq.length < qtd){
-    // Aplica o módulo para garantir que o grau caiba na escala selecionada
     seq.push(...modelo.map(idx => idx % tamanhoEscala));
   }
 
   return seq.slice(0, qtd);
 }
 
-// ---- Sintetizador Web Audio API (Ouvir Progressão) ----
+// ---- Sintetizador Web Audio API ----
 let audioCtx = null;
 function tocarAcorde(nomeAcorde){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -322,7 +402,6 @@ function tocarAcorde(nomeAcorde){
   const notaBase = notaBaseMatch[0];
   const freqBase = FREQUENCIAS[notaBase] || 261.63;
   
-  // Notas da tríade aproximada
   let intervalos = [0, 4, 7]; 
   if(nomeAcorde.includes('m') && !nomeAcorde.includes('maj')) intervalos = [0, 3, 7];
   if(nomeAcorde.includes('dim')) intervalos = [0, 3, 6];
@@ -355,9 +434,9 @@ function tocarProgressao(acordes){
   });
 }
 
-// ---- Histórico e Favoritos (localStorage) ----
-const LS_HIST = 'progressoes_historico_v2';
-const LS_FAV = 'progressoes_favoritos_v2';
+// ---- Histórico e Favoritos ----
+const LS_HIST = 'progressoes_historico_v3';
+const LS_FAV = 'progressoes_favoritos_v3';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
 function salvar(chave,dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
 
@@ -467,26 +546,70 @@ document.getElementById('gerar').addEventListener('click', () => {
   const escala = document.getElementById('escala').value;
   const tom = document.getElementById('tom').value;
   const qtd = parseInt(document.getElementById('qtd').value, 10);
+  
+  const permitirInversoes = document.getElementById('chk-inversoes').checked;
+  const permitirEmprestimo = document.getElementById('chk-emprestimo').checked;
+  const permitirDominantes = document.getElementById('chk-dominantes').checked;
+
   const tomIndex = NOTAS.indexOf(tom);
   const escalaGraus = ESCALAS[escala] || ESCALAS.maior;
 
   const sequencia = gerarSequenciaDegraus(estilo, qtd, escalaGraus.length);
-  const acordes = sequencia.map(idx => gerarAcorde(tomIndex, escalaGraus[idx], estilo));
-  const romanos = sequencia.map(idx => gerarRoman(idx, escala));
-  const campo = gerarCampoHarmonico(tomIndex, escala);
+  
+  let acordes = [];
+  let romanos = [];
 
+  for(let i = 0; i < sequencia.length; i++){
+    const idx = sequencia[i];
+    let acorde = gerarAcorde(tomIndex, escalaGraus[idx], estilo);
+    let roman = gerarRoman(idx, escala);
+
+    const rand = Math.random();
+
+    // 1. Dominante Secundário (insere antes se houver espaço)
+    if(permitirDominantes && i > 0 && rand < 0.20 && !acordes[acordes.length-1].includes('7')){
+      const domSec = gerarDominanteSecundario(acorde);
+      if(domSec){
+        acordes.push(domSec.acorde);
+        romanos.push(`V7/${roman}`);
+        if(acordes.length >= qtd) break;
+      }
+    }
+
+    // 2. Empréstimo Harmônico (troca o acorde atual por um fora da escala)
+    if(permitirEmprestimo && rand > 0.80 && escala === 'maior'){
+      const emp = aplicarEmprestimoHarmonico(tomIndex, escala);
+      if(emp){
+        acorde = emp.acorde;
+        roman = emp.roman;
+      }
+    }
+
+    // 3. Inversões (Slash Chords)
+    if(permitirInversoes && rand > 0.50 && rand <= 0.75){
+      acorde = aplicarInversao(acorde);
+    }
+
+    acordes.push(acorde);
+    romanos.push(roman);
+
+    if(acordes.length >= qtd) break;
+  }
+
+  const campo = gerarCampoHarmonico(tomIndex, escala);
   const item = { estilo, escala, tom, acordes, romanos, ts: Date.now() };
+  
   historico.unshift(item);
   historico = historico.slice(0,10);
   salvar(LS_HIST, historico);
 
   renderResultado(item);
   document.getElementById('campoHarmonico').innerHTML = `
-  <div class="label">Campo Harmônico (${escala})</div>
-  <div class="chords">
-    ${campo.map(a => `<div class="chord" onclick="tocarAcorde('${a}')">${a}</div>`).join('')}
-  </div>
-`;
+    <div class="label">Campo Harmônico (${escala})</div>
+    <div class="chords">
+      ${campo.map(a => `<div class="chord" onclick="tocarAcorde('${a}')">${a}</div>`).join('')}
+    </div>
+  `;
   renderListas();
 });
 
