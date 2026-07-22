@@ -24,7 +24,7 @@
     justify-content:center;
     padding:24px 16px;
   }
-  .app{ width:100%; max-width:500px; }
+  .app{ width:100%; max-width:520px; }
   h1{ font-size:1.4rem; text-align:center; margin-bottom:4px; }
   p.subtitle{ text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 20px; }
   .card{
@@ -100,6 +100,33 @@
     border: 1px solid var(--border);
   }
 
+  /* Painel de Diagramas */
+  #painelDiagrama {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #12151c;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 14px;
+  }
+  .diagrama-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .diagrama-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+
   .transpor-container {
     display: flex;
     gap: 8px;
@@ -139,7 +166,7 @@
 <body>
 <div class="app">
   <h1>🎸 Gerador de Progressão Ultra</h1>
-  <p class="subtitle">Composição Harmônica e Áudio Sintetizado</p>
+  <p class="subtitle">Composição Harmônica e Teoria Musical</p>
 
   <div class="card">
     <label for="estilo">Estilo Musical</label>
@@ -199,16 +226,29 @@
       </div>
     </div>
 
-    <label for="ritmo">Estilo de Ritmo</label>
-    <select id="ritmo">
-      <option value="padrao">Padrão (4/4 Bloco)</option>
-      <option value="arpejo">Arpejado (Notas Suaves)</option>
-      <option value="bossa">Bossa Nova / Swung</option>
-      <option value="reggae">Reggae (Sincopado/Offbeat)</option>
-    </select>
+    <div class="controls-grid">
+      <div>
+        <label for="ritmo">Ritmo / Batida</label>
+        <select id="ritmo">
+          <option value="padrao">Padrão (4/4 Bloco)</option>
+          <option value="arpejo">Arpejado (Notas Suaves)</option>
+          <option value="bossa">Bossa Nova / Swung</option>
+          <option value="reggae">Reggae (Sincopado)</option>
+        </select>
+      </div>
+      <div>
+        <label for="timbre">Timbre de Áudio</label>
+        <select id="timbre">
+          <option value="piano">Piano Suave</option>
+          <option value="rhodes">Piano Elétrico (Rhodes)</option>
+          <option value="orgao">Órgão Synth</option>
+          <option value="violao">Violão Synth</option>
+        </select>
+      </div>
+    </div>
 
     <fieldset class="checkbox-group">
-      <legend>Acompanhamento & Recursos</legend>
+      <legend>Acompanhamento & Recursos Harmônicos</legend>
       <label class="checkbox-item">
         <input type="checkbox" id="chk-bateria" checked> Acompanhamento de Bateria Simples
       </label>
@@ -220,6 +260,12 @@
       </label>
       <label class="checkbox-item">
         <input type="checkbox" id="chk-dominantes" checked> Dominantes Secundários (V7/X)
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-subv7" checked> Substitutos Dominantes (SubV7)
+      </label>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-diminutos"> Acordes Diminutos de Passagem
       </label>
     </fieldset>
 
@@ -252,6 +298,17 @@ const FREQUENCIAS = {
   'C': 261.63, 'C#': 277.18, 'Db': 277.18, 'D': 293.66, 'D#': 311.13, 'Eb': 311.13,
   'E': 329.63, 'F': 349.23, 'F#': 369.99, 'Gb': 369.99, 'G': 392.00,
   'G#': 415.30, 'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
+};
+
+// Dicionário Básico de Posições para Violão (Trastes por Corda: E A D G B E)
+const POSICOES_VIOLAO = {
+  'C': ['X', 3, 2, 0, 1, 0], 'C7': ['X', 3, 2, 3, 1, 0], 'Cmaj7': ['X', 3, 2, 0, 0, 0], 'Cm': ['X', 3, 5, 5, 4, 3],
+  'D': ['X', 'X', 0, 2, 3, 2], 'D7': ['X', 'X', 0, 2, 1, 2], 'Dm': ['X', 'X', 0, 2, 3, 1], 'Dmaj7': ['X', 'X', 0, 2, 2, 2],
+  'E': [0, 2, 2, 1, 0, 0], 'E7': [0, 2, 0, 1, 0, 0], 'Em': [0, 2, 2, 0, 0, 0], 'Emaj7': [0, 2, 1, 1, 0, 0],
+  'F': [1, 3, 3, 2, 1, 1], 'F7': [1, 3, 1, 2, 1, 1], 'Fmaj7': ['X', 3, 3, 2, 1, 0], 'Fm': [1, 3, 3, 1, 1, 1],
+  'G': [3, 2, 0, 0, 0, 3], 'G7': [3, 2, 0, 0, 0, 1], 'Gmaj7': [3, 2, 0, 0, 0, 2], 'Gm': [3, 5, 5, 3, 3, 3],
+  'A': ['X', 0, 2, 2, 2, 0], 'A7': ['X', 0, 2, 0, 2, 0], 'Am': ['X', 0, 2, 2, 1, 0], 'Amaj7': ['X', 0, 2, 1, 2, 0],
+  'B': ['X', 2, 4, 4, 4, 2], 'B7': ['X', 2, 1, 2, 0, 2], 'Bm': ['X', 2, 4, 4, 3, 2], 'B7b5': ['X', 2, 3, 2, 3, 'X']
 };
 
 const CONFIG_ESTILOS = {
@@ -305,11 +362,7 @@ const ESCALAS = {
     {grau:0, qual:'m'},{grau:3, qual:''},{grau:5, qual:'m'},{grau:7, qual:'m'},{grau:10, qual:''}
   ],
   blues_escala: [
-    {grau:0, qual:'7'},
-    {grau:5, qual:'7'},
-    {grau:7, qual:'7'},
-    {grau:3, qual:'7'},
-    {grau:10, qual:'7'}
+    {grau:0, qual:'7'},{grau:5, qual:'7'},{grau:7, qual:'7'},{grau:3, qual:'7'},{grau:10, qual:'7'}
   ]
 };
 
@@ -362,7 +415,6 @@ function transporProgressao(semitons) {
 
 function gerarAcorde(tomIndex, grauInfo, estilo){
   if (!grauInfo) return '';
-  
   const raiz = nota(tomIndex, grauInfo.grau);
   let sufixo = grauInfo.qual;
   
@@ -370,13 +422,11 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
   if (cfg.extensoes && cfg.extensoes[grauInfo.qual] !== undefined && Math.random() < 0.7){
     sufixo = cfg.extensoes[grauInfo.qual];
   }
-
   return raiz + sufixo;
 }
 
 function aplicarInversao(acorde){
   if (acorde.includes('/') || acorde.includes('5')) return acorde;
-  
   const match = acorde.match(/^[A-G][#b]?/);
   if (!match) return acorde;
 
@@ -386,20 +436,17 @@ function aplicarInversao(acorde){
 
   const ehMenor = acorde.includes('m') && !acorde.includes('maj');
   const semitonsTerca = ehMenor ? 3 : 4;
-  
   const terca = ehMenor ? NOTAS_BEMOL[(idxRaiz + semitonsTerca) % 12] : NOTAS[(idxRaiz + semitonsTerca) % 12];
   return `${acorde}/${terca}`;
 }
 
 function aplicarEmprestimoHarmonico(tomIndex, escala){
   if (escala !== 'maior') return null;
-
   const opcoes = [
     { roman: 'iv', semitons: 5, sufixo: 'm' },
     { roman: '♭VI', semitons: 8, sufixo: '' },
     { roman: '♭VII', semitons: 10, sufixo: '' }
   ];
-
   const esc = opcoes[Math.floor(Math.random() * opcoes.length)];
   const raiz = NOTAS_BEMOL[(tomIndex + esc.semitons) % 12];
   return { acorde: raiz + esc.sufixo, roman: esc.roman };
@@ -408,13 +455,34 @@ function aplicarEmprestimoHarmonico(tomIndex, escala){
 function gerarDominanteSecundario(acordeAlvo){
   const match = acordeAlvo.match(/^[A-G][#b]?/);
   if (!match) return null;
-
   const raizAlvo = match[0];
   let idxAlvo = NOTAS.indexOf(raizAlvo);
   if(idxAlvo === -1) idxAlvo = NOTAS_BEMOL.indexOf(raizAlvo);
 
   const raizDom = NOTAS[(idxAlvo + 7) % 12];
   return { acorde: raizDom + '7', roman: 'V7' };
+}
+
+function gerarSubV7(acordeAlvo){
+  const match = acordeAlvo.match(/^[A-G][#b]?/);
+  if (!match) return null;
+  const raizAlvo = match[0];
+  let idxAlvo = NOTAS.indexOf(raizAlvo);
+  if(idxAlvo === -1) idxAlvo = NOTAS_BEMOL.indexOf(raizAlvo);
+
+  const raizSub = NOTAS_BEMOL[(idxAlvo + 1) % 12];
+  return { acorde: raizSub + '7', roman: 'SubV7' };
+}
+
+function gerarDiminutoPassagem(acordeAlvo){
+  const match = acordeAlvo.match(/^[A-G][#b]?/);
+  if (!match) return null;
+  const raizAlvo = match[0];
+  let idxAlvo = NOTAS.indexOf(raizAlvo);
+  if(idxAlvo === -1) idxAlvo = NOTAS_BEMOL.indexOf(raizAlvo);
+
+  const raizDim = NOTAS[(idxAlvo + 11) % 12];
+  return { acorde: raizDim + 'dim7', roman: '#I°' };
 }
 
 function gerarRoman(idxGrau, escala){
@@ -438,20 +506,13 @@ function gerarCampoHarmonico(tomIndex, escala, estilo){
 
 function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   if (tamanhoEscala === 0) return [];
-  
   const progressosComuns = {
     pop: [[0,4,5,3], [5,3,0,4], [0,5,3,4], [3,0,4,5]],
     rock: [[0,4,3,0], [5,3,0,4], [4,3,0,0], [0,3,4,0]],
-    blues: [
-      [0,1,0,2],       // I7 - IV7 - I7 - V7
-      [0,1,2,1],       // I7 - IV7 - V7 - IV7
-      [0,0,1,2],       // I7 - I7 - IV7 - V7
-      [0,1,0,0,1,1,0,0,2,1,0,2] // 12 Bar Blues
-    ],
+    blues: [[0,1,0,2], [0,1,2,1], [0,0,1,2]],
     jazz: [[1,4,0,5], [2,5,1,4], [5,1,4,0]],
     bossa: [[0,1,4,0], [5,1,4,0], [3,1,4,0]]
   };
-
   const base = progressosComuns[estilo] || progressosComuns.pop;
   const modelo = base[Math.floor(Math.random() * base.length)];
   const seq = [];
@@ -459,11 +520,10 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   while (seq.length < qtd){
     seq.push(...modelo.map(idx => idx % tamanhoEscala));
   }
-
   return seq.slice(0, qtd);
 }
 
-// ---- WEB AUDIO API & INTERRUPÇÃO IMEDIATA ----
+// ---- WEB AUDIO API & TIMBRES SINTETIZADOS ----
 let audioCtx = null;
 let analyser = null;
 let animCanvasId = null;
@@ -484,30 +544,46 @@ function pararPlayback() {
   timeoutsAgendados.forEach(clearTimeout);
   timeoutsAgendados = [];
 
-  // CORREÇÃO CRUCIAL: Encerrar o contexto de áudio interrompe TODOS os sons agendados imediatamente
   if (audioCtx && audioCtx.state !== 'closed') {
     audioCtx.close();
   }
-
   if (animCanvasId) {
     cancelAnimationFrame(animCanvasId);
     animCanvasId = null;
   }
-  
   document.querySelectorAll('.chord').forEach(el => el.classList.remove('ativo'));
 }
 
-function tocarNotaADSR(freq, tempoInicio, duracao = 1.2) {
+function tocarNotaSintetizada(freq, tempoInicio, duracao = 1.2, tipoTimbre = 'piano') {
   inicializarAudio();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
-  osc.type = 'triangle';
+  // Configuração de Timbres
+  if (tipoTimbre === 'rhodes') {
+    osc.type = 'sine';
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.value = freq * 2;
+    const gain2 = audioCtx.createGain();
+    gain2.gain.value = 0.1;
+    osc2.connect(gain2);
+    gain2.connect(gain);
+    osc2.start(tempoInicio);
+    osc2.stop(tempoInicio + duracao);
+  } else if (tipoTimbre === 'orgao') {
+    osc.type = 'sine';
+  } else if (tipoTimbre === 'violao') {
+    osc.type = 'sawtooth';
+  } else {
+    osc.type = 'triangle'; // Piano Suave
+  }
+
   osc.frequency.value = freq;
 
-  const attack = 0.03;
+  const attack = tipoTimbre === 'orgao' ? 0.01 : 0.03;
   const decay = 0.2;
-  const sustainLevel = 0.4;
+  const sustainLevel = tipoTimbre === 'orgao' ? 0.8 : 0.4;
   const release = 0.4;
 
   const peekVol = 0.15;
@@ -611,6 +687,27 @@ function renderVisualizer() {
   if(!animCanvasId) draw();
 }
 
+function extrairNotasDoAcorde(nomeAcorde) {
+  const notaBaseMatch = nomeAcorde.match(/^[A-G][#b]?/);
+  if(!notaBaseMatch) return [];
+  const notaBase = notaBaseMatch[0];
+  let idxBase = NOTAS.indexOf(notaBase);
+  if (idxBase === -1) idxBase = NOTAS_BEMOL.indexOf(notaBase);
+
+  let intervalos = [0, 4, 7]; 
+  if(nomeAcorde.includes('m') && !nomeAcorde.includes('maj')) intervalos = [0, 3, 7];
+  if(nomeAcorde.includes('dim') || nomeAcorde.includes('m7b5')) intervalos = [0, 3, 6];
+  if(nomeAcorde.includes('aug')) intervalos = [0, 4, 8];
+  if(nomeAcorde.includes('5')) intervalos = [0, 7];
+
+  if (nomeAcorde.includes('maj7')) intervalos.push(11);
+  else if (nomeAcorde.includes('7')) intervalos.push(10);
+  if (nomeAcorde.includes('m9') || nomeAcorde.includes('add9') || nomeAcorde.includes('9')) intervalos.push(14);
+  if (nomeAcorde.includes('6')) intervalos.push(9);
+
+  return intervalos.map(s => NOTAS[(idxBase + s) % 12]);
+}
+
 function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
   inicializarAudio();
   renderVisualizer();
@@ -620,6 +717,7 @@ function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
   
   const notaBase = notaBaseMatch[0];
   const freqBase = FREQUENCIAS[notaBase] || 261.63;
+  const timbreSel = document.getElementById('timbre').value;
   
   let intervalos = [0, 4, 7]; 
   if(nomeAcorde.includes('m') && !nomeAcorde.includes('maj')) intervalos = [0, 3, 7];
@@ -637,15 +735,113 @@ function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
   if (estiloRitmo === 'arpejo') {
     intervalos.forEach((semitons, idx) => {
       const freq = freqBase * Math.pow(2, semitons / 12);
-      tocarNotaADSR(freq, tempoInicioAbsoluto + (idx * 0.12), 1.0);
+      tocarNotaSintetizada(freq, tempoInicioAbsoluto + (idx * 0.12), 1.0, timbreSel);
     });
   } else {
     intervalos.forEach((semitons, idx) => {
       const freq = freqBase * Math.pow(2, semitons / 12);
       const atrasoNota = idx * 0.03; 
-      tocarNotaADSR(freq, tempoInicioAbsoluto + atrasoNota, 1.2);
+      tocarNotaSintetizada(freq, tempoInicioAbsoluto + atrasoNota, 1.2, timbreSel);
     });
   }
+
+  exibirDiagramas(nomeAcorde);
+}
+
+// ---- DESENHO DE DIAGRAMAS (VIOLÃO & TECLADO) ----
+function exibirDiagramas(nomeAcorde) {
+  let painel = document.getElementById('painelDiagrama');
+  if(!painel) {
+    painel = document.createElement('div');
+    painel.id = 'painelDiagrama';
+    document.getElementById('resultado').appendChild(painel);
+  }
+  painel.innerHTML = '';
+
+  const titulo = document.createElement('strong');
+  titulo.style.fontSize = '0.85rem';
+  titulo.style.color = '#22d3ee';
+  titulo.textContent = `Diagrama para: ${nomeAcorde}`;
+  painel.appendChild(titulo);
+
+  const container = document.createElement('div');
+  container.className = 'diagrama-container';
+
+  // 1. Violão (SVG)
+  const boxViolao = document.createElement('div');
+  boxViolao.className = 'diagrama-box';
+  boxViolao.innerHTML = `<span>Violão / Guitarra</span>`;
+  
+  const svgV = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgV.setAttribute('width', '100');
+  svgV.setAttribute('height', '100');
+  svgV.setAttribute('viewBox', '0 0 100 100');
+  
+  // Trastes
+  for(let i=1; i<=4; i++){
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', '20'); line.setAttribute('y1', i*20);
+    line.setAttribute('x2', '80'); line.setAttribute('y2', i*20);
+    line.setAttribute('stroke', '#2a2e38'); line.setAttribute('stroke-width', '2');
+    svgV.appendChild(line);
+  }
+  // Cordas
+  for(let i=0; i<6; i++){
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', 20 + i*12); line.setAttribute('y1', '20');
+    line.setAttribute('x2', 20 + i*12); line.setAttribute('y2', '80');
+    line.setAttribute('stroke', '#9aa0ab'); line.setAttribute('stroke-width', '1');
+    svgV.appendChild(line);
+  }
+
+  const baseClean = nomeAcorde.split('/')[0];
+  const pos = POSICOES_VIOLAO[baseClean] || POSICOES_VIOLAO['C'];
+  pos.forEach((traste, idxCorda) => {
+    const x = 20 + idxCorda*12;
+    if(traste === 'X' || traste === 0) {
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', x); txt.setAttribute('y', '15');
+      txt.setAttribute('fill', '#f2f2f5'); txt.setAttribute('font-size', '10');
+      txt.setAttribute('text-anchor', 'middle');
+      txt.textContent = traste;
+      svgV.appendChild(txt);
+    } else {
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x); circle.setAttribute('cy', traste*20 - 10);
+      circle.setAttribute('r', '4'); circle.setAttribute('fill', '#7c5cff');
+      svgV.appendChild(circle);
+    }
+  });
+
+  boxViolao.appendChild(svgV);
+
+  // 2. Teclado (SVG)
+  const boxTeclado = document.createElement('div');
+  boxTeclado.className = 'diagrama-box';
+  boxTeclado.innerHTML = `<span>Teclado / Piano</span>`;
+
+  const svgT = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgT.setAttribute('width', '120');
+  svgT.setAttribute('height', '60');
+  svgT.setAttribute('viewBox', '0 0 120 60');
+
+  const notasAcorde = extrairNotasDoAcorde(nomeAcorde);
+  const teclasBrancas = ['C','D','E','F','G','A','B'];
+  
+  teclasBrancas.forEach((n, idx) => {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', idx*16 + 4); rect.setAttribute('y', '5');
+    rect.setAttribute('width', '14'); rect.setAttribute('height', '50');
+    rect.setAttribute('fill', notasAcorde.includes(n) ? '#22d3ee' : '#ffffff');
+    rect.setAttribute('stroke', '#12151c'); rect.setAttribute('rx', '2');
+    svgT.appendChild(rect);
+  });
+
+  boxTeclado.appendChild(svgT);
+
+  container.appendChild(boxViolao);
+  container.appendChild(boxTeclado);
+  painel.appendChild(container);
 }
 
 function tocarProgressao(acordes, emLoop = false){
@@ -665,16 +861,15 @@ function tocarProgressao(acordes, emLoop = false){
     const baseT = index * duracaoCompasso;
     let delayAcorde = baseT;
 
-    // Agendamento do Destaque Visual
     const tHighlight = setTimeout(() => {
       document.querySelectorAll('.chord').forEach((el, i) => {
         if (i === index) el.classList.add('ativo');
         else el.classList.remove('ativo');
       });
+      exibirDiagramas(acorde);
     }, delayAcorde * 1000);
     timeoutsAgendados.push(tHighlight);
 
-    // Agendamento do Ritmo dos Acordes
     if (ritmo === 'reggae') {
       delayAcorde += (duracaoCompasso * 0.25);
       tocarAcorde(acorde, delayAcorde, ritmo);
@@ -685,7 +880,6 @@ function tocarProgressao(acordes, emLoop = false){
       tocarAcorde(acorde, delayAcorde, ritmo);
     }
 
-    // CORREÇÃO DA BATERIA: Agendada universalmente em relação ao tempo do AudioContext
     if (usarBateria) {
       const tAbsoluto = audioCtx.currentTime + baseT;
       tocarBrumbo(tAbsoluto);
@@ -706,8 +900,8 @@ function tocarProgressao(acordes, emLoop = false){
 }
 
 // ---- LOCALSTORAGE ----
-const LS_HIST = 'progressoes_historico_v5';
-const LS_FAV = 'progressoes_favoritos_v5';
+const LS_HIST = 'progressoes_historico_v6';
+const LS_FAV = 'progressoes_favoritos_v6';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
 function salvar(chave,dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
 
@@ -814,6 +1008,8 @@ function renderResultado(item){
   resDiv.appendChild(romanDiv);
   resDiv.appendChild(transporDiv);
   resDiv.appendChild(acoes);
+
+  exibirDiagramas(item.acordes[0]);
 }
 
 function linhaItem(item, mostrarRemover){
@@ -906,6 +1102,8 @@ document.getElementById('gerar').addEventListener('click', () => {
   const permitirInversoes = document.getElementById('chk-inversoes').checked;
   const permitirEmprestimo = document.getElementById('chk-emprestimo').checked;
   const permitirDominantes = document.getElementById('chk-dominantes').checked;
+  const permitirSubV7 = document.getElementById('chk-subv7').checked;
+  const permitirDiminutos = document.getElementById('chk-diminutos').checked;
 
   const tomIndex = NOTAS.indexOf(tom);
   const escalaGraus = ESCALAS[escala] || ESCALAS.maior;
@@ -923,11 +1121,25 @@ document.getElementById('gerar').addEventListener('click', () => {
     let acorde = gerarAcorde(tomIndex, escalaGraus[idx], estilo);
     let roman = gerarRoman(idx, escala);
 
-    if(permitirDominantes && Math.random() < 0.25 && (acordes.length + 2 <= qtd) && idx !== 0){
+    if(permitirSubV7 && Math.random() < 0.20 && (acordes.length + 2 <= qtd) && idx !== 0){
+      const sub = gerarSubV7(acorde);
+      if(sub){
+        acordes.push(sub.acorde);
+        romanos.push(sub.roman);
+      }
+    } else if(permitirDominantes && Math.random() < 0.25 && (acordes.length + 2 <= qtd) && idx !== 0){
       const domSec = gerarDominanteSecundario(acorde);
       if(domSec){
         acordes.push(domSec.acorde);
         romanos.push(`V7/${roman}`);
+      }
+    }
+
+    if(permitirDiminutos && Math.random() < 0.15 && (acordes.length + 2 <= qtd)){
+      const dim = gerarDiminutoPassagem(acorde);
+      if(dim){
+        acordes.push(dim.acorde);
+        romanos.push(dim.roman);
       }
     }
 
