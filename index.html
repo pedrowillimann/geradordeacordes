@@ -12,6 +12,7 @@
     --text:#f2f2f5;
     --muted:#9aa0ab;
     --border:#2a2e38;
+    --success:#10b981;
   }
   *{box-sizing:border-box;}
   body{
@@ -48,6 +49,48 @@
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
+
+  /* Key Toggle Trava Harmônica */
+  .toggle-lock {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #12151c;
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+  .toggle-lock-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .toggle-lock-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .toggle-lock-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #2a2e38; transition: .3s; border-radius: 24px;
+  }
+  .slider:before {
+    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+    background-color: white; transition: .3s; border-radius: 50%;
+  }
+  input:checked + .slider { background-color: var(--success); }
+  input:checked + .slider:before { transform: translateX(20px); }
 
   .checkbox-group{
     margin-top:16px;
@@ -169,6 +212,17 @@
   <p class="subtitle">Composição Harmônica e Teoria Musical</p>
 
   <div class="card">
+    <div class="toggle-lock">
+      <div class="toggle-lock-info">
+        <span class="toggle-lock-title">Travar Harmonia Suave</span>
+        <span class="toggle-lock-desc">Garante fluxo musical agradável e sem saltos bruscos</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="chk-harmonia-suave" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <label for="estilo">Estilo Musical</label>
     <select id="estilo">
       <option value="pop">Pop</option>
@@ -300,7 +354,6 @@ const FREQUENCIAS = {
   'G#': 415.30, 'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
 };
 
-// Dicionário Básico de Posições para Violão (Trastes por Corda: E A D G B E)
 const POSICOES_VIOLAO = {
   'C': ['X', 3, 2, 0, 1, 0], 'C7': ['X', 3, 2, 3, 1, 0], 'Cmaj7': ['X', 3, 2, 0, 0, 0], 'Cm': ['X', 3, 5, 5, 4, 3],
   'D': ['X', 'X', 0, 2, 3, 2], 'D7': ['X', 'X', 0, 2, 1, 2], 'Dm': ['X', 'X', 0, 2, 3, 1], 'Dmaj7': ['X', 'X', 0, 2, 2, 2],
@@ -504,23 +557,31 @@ function gerarCampoHarmonico(tomIndex, escala, estilo){
   return { triades, tetrades };
 }
 
-function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
+function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala, harmoniaSuave = true){
   if (tamanhoEscala === 0) return [];
-  const progressosComuns = {
-    pop: [[0,4,5,3], [5,3,0,4], [0,5,3,4], [3,0,4,5]],
-    rock: [[0,4,3,0], [5,3,0,4], [4,3,0,0], [0,3,4,0]],
-    blues: [[0,1,0,2], [0,1,2,1], [0,0,1,2]],
-    jazz: [[1,4,0,5], [2,5,1,4], [5,1,4,0]],
-    bossa: [[0,1,4,0], [5,1,4,0], [3,1,4,0]]
-  };
-  const base = progressosComuns[estilo] || progressosComuns.pop;
-  const modelo = base[Math.floor(Math.random() * base.length)];
-  const seq = [];
-
-  while (seq.length < qtd){
-    seq.push(...modelo.map(idx => idx % tamanhoEscala));
+  
+  if(harmoniaSuave) {
+    const CADENCIAS_HARMONICAS = {
+      pop: [[0, 4, 5, 3], [0, 5, 3, 4], [0, 3, 5, 4]],
+      rock: [[0, 3, 4, 0], [0, 4, 3, 4]],
+      jazz: [[1, 4, 0, 5], [0, 5, 1, 4]],
+      bossa: [[0, 1, 4, 0], [0, 5, 1, 4]],
+      blues: [[0, 3, 0, 4], [0, 3, 4, 3]]
+    };
+    const pool = CADENCIAS_HARMONICAS[estilo] || CADENCIAS_HARMONICAS.pop;
+    const modelo = pool[Math.floor(Math.random() * pool.length)];
+    const seq = [];
+    while (seq.length < qtd){
+      seq.push(...modelo.map(idx => idx % tamanhoEscala));
+    }
+    return seq.slice(0, qtd);
+  } else {
+    const seq = [];
+    for(let i=0; i<qtd; i++){
+      seq.push(Math.floor(Math.random() * tamanhoEscala));
+    }
+    return seq;
   }
-  return seq.slice(0, qtd);
 }
 
 // ---- WEB AUDIO API & TIMBRES SINTETIZADOS ----
@@ -559,7 +620,6 @@ function tocarNotaSintetizada(freq, tempoInicio, duracao = 1.2, tipoTimbre = 'pi
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
-  // Configuração de Timbres
   if (tipoTimbre === 'rhodes') {
     osc.type = 'sine';
     const osc2 = audioCtx.createOscillator();
@@ -576,7 +636,7 @@ function tocarNotaSintetizada(freq, tempoInicio, duracao = 1.2, tipoTimbre = 'pi
   } else if (tipoTimbre === 'violao') {
     osc.type = 'sawtooth';
   } else {
-    osc.type = 'triangle'; // Piano Suave
+    osc.type = 'triangle';
   }
 
   osc.frequency.value = freq;
@@ -748,7 +808,6 @@ function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
   exibirDiagramas(nomeAcorde);
 }
 
-// ---- DESENHO DE DIAGRAMAS (VIOLÃO & TECLADO) ----
 function exibirDiagramas(nomeAcorde) {
   let painel = document.getElementById('painelDiagrama');
   if(!painel) {
@@ -767,7 +826,7 @@ function exibirDiagramas(nomeAcorde) {
   const container = document.createElement('div');
   container.className = 'diagrama-container';
 
-  // 1. Violão (SVG)
+  // Violão
   const boxViolao = document.createElement('div');
   boxViolao.className = 'diagrama-box';
   boxViolao.innerHTML = `<span>Violão / Guitarra</span>`;
@@ -777,7 +836,6 @@ function exibirDiagramas(nomeAcorde) {
   svgV.setAttribute('height', '100');
   svgV.setAttribute('viewBox', '0 0 100 100');
   
-  // Trastes
   for(let i=1; i<=4; i++){
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', '20'); line.setAttribute('y1', i*20);
@@ -785,7 +843,6 @@ function exibirDiagramas(nomeAcorde) {
     line.setAttribute('stroke', '#2a2e38'); line.setAttribute('stroke-width', '2');
     svgV.appendChild(line);
   }
-  // Cordas
   for(let i=0; i<6; i++){
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', 20 + i*12); line.setAttribute('y1', '20');
@@ -815,7 +872,7 @@ function exibirDiagramas(nomeAcorde) {
 
   boxViolao.appendChild(svgV);
 
-  // 2. Teclado (SVG)
+  // Teclado
   const boxTeclado = document.createElement('div');
   boxTeclado.className = 'diagrama-box';
   boxTeclado.innerHTML = `<span>Teclado / Piano</span>`;
@@ -900,8 +957,8 @@ function tocarProgressao(acordes, emLoop = false){
 }
 
 // ---- LOCALSTORAGE ----
-const LS_HIST = 'progressoes_historico_v6';
-const LS_FAV = 'progressoes_favoritos_v6';
+const LS_HIST = 'progressoes_historico_v7';
+const LS_FAV = 'progressoes_favoritos_v7';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
 function salvar(chave,dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
 
@@ -1099,6 +1156,7 @@ document.getElementById('gerar').addEventListener('click', () => {
   const tom = document.getElementById('tom').value;
   const qtd = parseInt(document.getElementById('qtd').value, 10);
   
+  const harmoniaSuave = document.getElementById('chk-harmonia-suave').checked;
   const permitirInversoes = document.getElementById('chk-inversoes').checked;
   const permitirEmprestimo = document.getElementById('chk-emprestimo').checked;
   const permitirDominantes = document.getElementById('chk-dominantes').checked;
@@ -1109,10 +1167,12 @@ document.getElementById('gerar').addEventListener('click', () => {
   const escalaGraus = ESCALAS[escala] || ESCALAS.maior;
   const cfgEstilo = CONFIG_ESTILOS[estilo] || CONFIG_ESTILOS.pop;
 
-  const sequencia = gerarSequenciaDegraus(estilo, qtd, escalaGraus.length);
+  const sequencia = gerarSequenciaDegraus(estilo, qtd, escalaGraus.length, harmoniaSuave);
   
   let acordes = [];
   let romanos = [];
+  let temperosAplicados = 0; 
+  const maxTemperos = harmoniaSuave ? 1 : 99;
 
   for(let i = 0; i < sequencia.length; i++){
     if(acordes.length >= qtd) break;
@@ -1121,33 +1181,39 @@ document.getElementById('gerar').addEventListener('click', () => {
     let acorde = gerarAcorde(tomIndex, escalaGraus[idx], estilo);
     let roman = gerarRoman(idx, escala);
 
-    if(permitirSubV7 && Math.random() < 0.20 && (acordes.length + 2 <= qtd) && idx !== 0){
-      const sub = gerarSubV7(acorde);
-      if(sub){
-        acordes.push(sub.acorde);
-        romanos.push(sub.roman);
+    if(temperosAplicados < maxTemperos) {
+      if(permitirSubV7 && Math.random() < (harmoniaSuave ? 0.15 : 0.25) && (acordes.length + 2 <= qtd) && idx !== 0){
+        const sub = gerarSubV7(acorde);
+        if(sub){
+          acordes.push(sub.acorde);
+          romanos.push(sub.roman);
+          temperosAplicados++;
+        }
+      } else if(permitirDominantes && Math.random() < (harmoniaSuave ? 0.20 : 0.30) && (acordes.length + 2 <= qtd) && idx !== 0){
+        const domSec = gerarDominanteSecundario(acorde);
+        if(domSec){
+          acordes.push(domSec.acorde);
+          romanos.push(`V7/${roman}`);
+          temperosAplicados++;
+        }
       }
-    } else if(permitirDominantes && Math.random() < 0.25 && (acordes.length + 2 <= qtd) && idx !== 0){
-      const domSec = gerarDominanteSecundario(acorde);
-      if(domSec){
-        acordes.push(domSec.acorde);
-        romanos.push(`V7/${roman}`);
-      }
-    }
 
-    if(permitirDiminutos && Math.random() < 0.15 && (acordes.length + 2 <= qtd)){
-      const dim = gerarDiminutoPassagem(acorde);
-      if(dim){
-        acordes.push(dim.acorde);
-        romanos.push(dim.roman);
+      if(permitirDiminutos && Math.random() < (harmoniaSuave ? 0.10 : 0.20) && (acordes.length + 2 <= qtd)){
+        const dim = gerarDiminutoPassagem(acorde);
+        if(dim){
+          acordes.push(dim.acorde);
+          romanos.push(dim.roman);
+          temperosAplicados++;
+        }
       }
-    }
 
-    if(permitirEmprestimo && escala === 'maior' && Math.random() < cfgEstilo.probEmprestimo){
-      const emp = aplicarEmprestimoHarmonico(tomIndex, escala);
-      if(emp){
-        acorde = emp.acorde;
-        roman = emp.roman;
+      if(permitirEmprestimo && escala === 'maior' && Math.random() < (harmoniaSuave ? 0.15 : cfgEstilo.probEmprestimo)){
+        const emp = aplicarEmprestimoHarmonico(tomIndex, escala);
+        if(emp){
+          acorde = emp.acorde;
+          roman = emp.roman;
+          temperosAplicados++;
+        }
       }
     }
 
