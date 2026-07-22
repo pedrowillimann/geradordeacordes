@@ -1,347 +1,399 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Progressão de Acordes Ultra Pro</title>
-<style>
-  :root{
-    --card:#1a1d24;
-    --accent:#7c5cff;
-    --accent2:#22d3ee;
-    --text:#f2f2f5;
-    --muted:#9aa0ab;
-    --border:#2a2e38;
-    --success:#10b981;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    background:linear-gradient(160deg,#0f1115,#171a21);
-    color:var(--text);
-    min-height:100vh;
-    display:flex;
-    justify-content:center;
-    padding:24px 16px;
-  }
-  .app{ width:100%; max-width:520px; }
-  h1{ font-size:1.4rem; text-align:center; margin-bottom:4px; }
-  p.subtitle{ text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 20px; }
-  .card{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:16px;
-    padding:20px;
-    margin-bottom:16px;
-  }
-  label{ display:block; font-size:0.8rem; color:var(--muted); margin:14px 0 6px; }
-  label:first-child{ margin-top:0; }
-  select, input[type="number"]{
-    width:100%; padding:12px; border-radius:10px;
-    border:1px solid var(--border); background:#12151c; color:var(--text);
-    font-size:1rem; appearance:none; -webkit-appearance:none;
-  }
-  select:focus, input:focus{ outline:none; border-color:var(--accent); }
-  
-  .controls-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Progressões Harmônicas</title>
+  <style>
+    :root {
+      --bg-color: #12151c;
+      --card-bg: #1a1e29;
+      --accent-color: #22d3ee;
+      --accent-hover: #06b6d4;
+      --text-color: #f2f2f5;
+      --text-muted: #9aa0ab;
+      --border-color: #2a2e38;
+      --active-chord: #7c5cff;
+    }
 
-  /* Key Toggle Trava Harmônica */
-  .toggle-lock {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: #12151c;
-    border: 1px solid var(--border);
-    padding: 12px 14px;
-    border-radius: 12px;
-    margin-bottom: 16px;
-  }
-  .toggle-lock-info {
-    display: flex;
-    flex-direction: column;
-  }
-  .toggle-lock-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text);
-  }
-  .toggle-lock-desc {
-    font-size: 0.72rem;
-    color: var(--muted);
-  }
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-  }
-  .switch input { opacity: 0; width: 0; height: 0; }
-  .slider {
-    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #2a2e38; transition: .3s; border-radius: 24px;
-  }
-  .slider:before {
-    position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
-    background-color: white; transition: .3s; border-radius: 50%;
-  }
-  input:checked + .slider { background-color: var(--success); }
-  input:checked + .slider:before { transform: translateX(20px); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
 
-  .checkbox-group{
-    margin-top:16px;
-    padding:12px;
-    background:#12151c;
-    border-radius:10px;
-    border:1px solid var(--border);
-  }
-  .checkbox-group legend{
-    font-size:0.8rem;
-    color:var(--muted);
-    padding:0 4px;
-  }
-  .checkbox-item{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-size:0.85rem;
-    margin-top:8px;
-    cursor:pointer;
-  }
-  .checkbox-item input{ accent-color:var(--accent); cursor:pointer; }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
 
-  button#gerar{
-    width:100%; margin-top:22px; padding:15px; border:none; border-radius:12px;
-    background:linear-gradient(135deg,var(--accent),var(--accent2));
-    color:#fff; font-size:1.05rem; font-weight:600; cursor:pointer;
-    transition:transform .12s ease, opacity .12s ease;
-  }
-  button#gerar:active{ transform:scale(0.97); opacity:0.9; }
-  #resultado{ text-align:center; }
-  .label{ font-size:0.88rem; color:var(--muted); margin-bottom:10px; }
-  .chords{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:10px; }
-  .chord{
-    background:#12151c; border:1px solid var(--border); border-radius:10px;
-    padding:10px 14px; font-size:1.1rem; font-weight:700; min-width:52px; text-align:center;
-    cursor:pointer; transition:border-color 0.2s, background 0.2s;
-  }
-  .chord:hover{ border-color:var(--accent2); }
-  .chord.ativo{ border-color:var(--accent); background:#252b3b; }
-  .roman{ font-size:0.75rem; color:var(--muted); margin-bottom:12px; }
-  .empty{ color:var(--muted); font-size:0.9rem; padding:20px 0; }
-  
-  canvas#visualizer {
-    width: 100%;
-    height: 60px;
-    background: #12151c;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    border: 1px solid var(--border);
-  }
+    @media (min-width: 768px) {
+      .container {
+        grid-template-columns: 320px 1fr;
+      }
+    }
 
-  /* Painel de Diagramas */
-  #painelDiagrama {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: #12151c;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
-    margin-top: 14px;
-  }
-  .diagrama-container {
-    display: flex;
-    gap: 20px;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-top: 8px;
-  }
-  .diagrama-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 0.75rem;
-    color: var(--muted);
-  }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+    }
 
-  .transpor-container {
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    align-items: center;
-    margin: 12px 0;
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
+    h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      color: var(--accent-color);
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
 
-  .acoes{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
-  .acoes button, .transpor-container button{
-    font-size:0.8rem; padding:8px 12px; border-radius:8px; border:1px solid var(--border);
-    background:#12151c; color:var(--text); cursor:pointer;
-  }
-  .acoes button:active, .transpor-container button:active{ transform:scale(0.97); }
-  
-  .tabs{ display:flex; gap:8px; border-bottom:1px solid var(--border); margin-bottom:12px; }
-  .tabs button{
-    flex:1; border:none; background:none; padding:8px; font-size:0.85rem;
-    color:var(--muted); border-bottom:2px solid transparent; cursor:pointer;
-  }
-  .tabs button.ativo{ color:var(--text); border-bottom-color:var(--accent); }
-  .item-lista{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:8px 10px; border:1px solid var(--border); border-radius:8px;
-    margin-bottom:6px; cursor:pointer; background:#12151c;
-  }
-  .item-lista:hover{ border-color:var(--accent); }
-  .item-lista .info{ font-size:0.8rem; }
-  .item-lista .sub{ color:var(--muted); font-size:0.7rem; display:block; }
-  .item-lista .icone{ color:var(--muted); font-size:1rem; }
-  .vazio{ font-size:0.8rem; color:var(--muted); text-align:center; padding:10px 0; }
-  footer{ text-align:center; color:var(--muted); font-size:0.75rem; margin-top:20px; }
-</style>
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    select, input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      font-size: 0.8rem;
+    }
+
+    .checkbox-item input {
+      margin-right: 6px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--accent-color);
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .chords {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    .chord {
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: transform 0.1s, border-color 0.2s;
+    }
+
+    .chord:hover {
+      border-color: var(--accent-color);
+    }
+
+    .chord.ativo {
+      background-color: var(--active-chord);
+      color: #fff;
+      border-color: var(--active-chord);
+    }
+
+    .roman {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 15px;
+    }
+
+    .acoes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .acoes button {
+      width: auto;
+      flex: 1;
+      min-width: 80px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+
+    .acoes button:hover {
+      background-color: var(--border-color);
+    }
+
+    .transpor-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+      font-size: 0.85rem;
+    }
+
+    .transpor-container button {
+      width: auto;
+      padding: 4px 8px;
+    }
+
+    canvas#visualizer {
+      width: 100%;
+      height: 60px;
+      background-color: var(--bg-color);
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 10px;
+    }
+
+    .tab {
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .tab.ativo {
+      color: var(--accent-color);
+      border-bottom: 2px solid var(--accent-color);
+    }
+
+    .item-lista {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .item-lista:hover {
+      background-color: var(--bg-color);
+    }
+
+    .item-lista .sub {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .diagrama-container {
+      display: flex;
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .diagrama-box {
+      background: var(--bg-color);
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    .diagrama-box span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .vazio {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 10px 0;
+    }
+  </style>
 </head>
 <body>
-<div class="app">
-  <h1>🎸 Gerador de Progressão Ultra</h1>
-  <p class="subtitle">Composição Harmônica e Teoria Musical</p>
 
+<div class="container">
+  <!-- COLUNA CONTROLES -->
   <div class="card">
-    <div class="toggle-lock">
-      <div class="toggle-lock-info">
-        <span class="toggle-lock-title">Travar Harmonia Suave</span>
-        <span class="toggle-lock-desc">Garante fluxo musical agradável e sem saltos bruscos</span>
-      </div>
-      <label class="switch">
+    <h2>Configurações</h2>
+    
+    <div class="form-group">
+      <label for="tom">Tom Base</label>
+      <select id="tom">
+        <option value="C">C (Dó)</option>
+        <option value="C#">C# / Db</option>
+        <option value="D">D (Ré)</option>
+        <option value="D#">D# / Eb</option>
+        <option value="E">E (Mi)</option>
+        <option value="F">F (Fá)</option>
+        <option value="F#">F# / Gb</option>
+        <option value="G">G (Sol)</option>
+        <option value="G#">G# / Ab</option>
+        <option value="A">A (Lá)</option>
+        <option value="A#">A# / Bb</option>
+        <option value="B">B (Si)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="escala">Escala / Modo</label>
+      <select id="escala">
+        <option value="maior">Maior (Jônio)</option>
+        <option value="menor">Menor (Eólio)</option>
+        <option value="menor_harmonica">Menor Harmônica</option>
+        <option value="menor_melodica">Menor Melódica</option>
+        <option value="dorico">Dórico</option>
+        <option value="mixolidio">Mixolídio</option>
+        <option value="penta_maior">Pentatônica Maior</option>
+        <option value="penta_menor">Pentatônica Menor</option>
+        <option value="blues_escala">Escala de Blues</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="estilo">Estilo Musical</label>
+      <select id="estilo">
+        <option value="pop">Pop</option>
+        <option value="rock">Rock</option>
+        <option value="jazz">Jazz</option>
+        <option value="bossa">Bossa Nova</option>
+        <option value="samba">Samba</option>
+        <option value="lofi">Lo-Fi</option>
+        <option value="gospel">Gospel</option>
+        <option value="blues">Blues</option>
+        <option value="mpb_romantica">MPB / Romântica</option>
+        <option value="folk">Folk</option>
+        <option value="indie">Indie</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="qtd">Quantidade de Acordes</label>
+      <input type="number" id="qtd" value="4" min="2" max="16">
+    </div>
+
+    <div class="form-group">
+      <label for="bpm">Andamento (BPM)</label>
+      <input type="number" id="bpm" value="100" min="40" max="220">
+    </div>
+
+    <div class="form-group">
+      <label for="ritmo">Estilo de Execução</label>
+      <select id="ritmo">
+        <option value="padrao">Padrão (Bloco)</option>
+        <option value="arpejo">Arpejado</option>
+        <option value="bossa">Sincopado Bossa</option>
+        <option value="reggae">Off-beat (Reggae)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="timbre">Timbre do Sintetizador</label>
+      <select id="timbre">
+        <option value="piano">Piano Suave</option>
+        <option value="rhodes">E-Piano (Rhodes)</option>
+        <option value="orgao">Órgão</option>
+        <option value="violao">Acústico</option>
+      </select>
+    </div>
+
+    <div class="checkbox-group">
+      <div class="checkbox-item">
         <input type="checkbox" id="chk-harmonia-suave" checked>
-        <span class="slider"></span>
-      </label>
-    </div>
-
-    <label for="estilo">Estilo Musical</label>
-    <select id="estilo">
-      <option value="pop">Pop</option>
-      <option value="rock">Rock</option>
-      <option value="jazz">Jazz</option>
-      <option value="blues">Blues</option>
-      <option value="bossa">Bossa Nova / MPB</option>
-      <option value="samba">Samba / Pagode</option>
-      <option value="lofi">Lo-Fi / Chill</option>
-      <option value="reggae">Reggae</option>
-      <option value="metal">Metal</option>
-      <option value="gospel">Gospel</option>
-      <option value="folk">Folk</option>
-      <option value="indie">Indie</option>
-      <option value="britpop">Britpop</option>
-      <option value="grunge">Grunge</option>
-      <option value="mpb_romantica">MPB Romântica</option>
-      <option value="bluesrock">Blues Rock</option>
-    </select>
-
-    <label for="escala">Escala / Modo</label>
-    <select id="escala">
-      <option value="maior">Maior (Jônio)</option>
-      <option value="menor">Menor (Eólio)</option>
-      <option value="menor_harmonica">Menor Harmônica</option>
-      <option value="menor_melodica">Menor Melódica</option>
-      <option value="dorico">Modo Dórico</option>
-      <option value="mixolidio">Modo Mixolídio</option>
-      <option value="penta_maior">Pentatônica Maior</option>
-      <option value="penta_menor">Pentatônica Menor</option>
-      <option value="blues_escala">Escala de Blues</option>
-    </select>
-
-    <label for="tom">Tom (Tônica)</label>
-    <select id="tom">
-      <option>C</option><option>C#</option><option>D</option><option>D#</option>
-      <option>E</option><option>F</option><option>F#</option><option>G</option>
-      <option>G#</option><option>A</option><option>A#</option><option>B</option>
-    </select>
-
-    <div class="controls-grid">
-      <div>
-        <label for="qtd">Qtd. Acordes</label>
-        <select id="qtd">
-          <option value="2">2 (Vamp)</option>
-          <option value="4" selected>4</option>
-          <option value="6">6</option>
-          <option value="8">8</option>
-          <option value="12">12</option>
-        </select>
+        <label for="chk-harmonia-suave">Cadência Suave</label>
       </div>
-      <div>
-        <label for="bpm">Andamento (BPM)</label>
-        <input type="number" id="bpm" value="100" min="60" max="180">
+      <div class="checkbox-item">
+        <input type="checkbox" id="chk-inversoes" checked>
+        <label for="chk-inversoes">Inversões</label>
+      </div>
+      <div class="checkbox-item">
+        <input type="checkbox" id="chk-emprestimo">
+        <label for="chk-emprestimo">Emp. Harmônico</label>
+      </div>
+      <div class="checkbox-item">
+        <input type="checkbox" id="chk-dominantes">
+        <label for="chk-dominantes">Dom. Secundário</label>
+      </div>
+      <div class="checkbox-item">
+        <input type="checkbox" id="chk-subv7">
+        <label for="chk-subv7">SubV7</label>
+      </div>
+      <div class="checkbox-item">
+        <input type="checkbox" id="chk-diminutos">
+        <label for="chk-diminutos">Diminutos</label>
+      </div>
+      <div class="checkbox-item" style="grid-column: span 2;">
+        <input type="checkbox" id="chk-bateria">
+        <label for="chk-bateria">Acompanhamento Bateria</label>
       </div>
     </div>
 
-    <div class="controls-grid">
-      <div>
-        <label for="ritmo">Ritmo / Batida</label>
-        <select id="ritmo">
-          <option value="padrao">Padrão (4/4 Bloco)</option>
-          <option value="arpejo">Arpejado (Notas Suaves)</option>
-          <option value="bossa">Bossa Nova / Swung</option>
-          <option value="reggae">Reggae (Sincopado)</option>
-        </select>
-      </div>
-      <div>
-        <label for="timbre">Timbre de Áudio</label>
-        <select id="timbre">
-          <option value="piano">Piano Suave</option>
-          <option value="rhodes">Piano Elétrico (Rhodes)</option>
-          <option value="orgao">Órgão Synth</option>
-          <option value="violao">Violão Synth</option>
-        </select>
-      </div>
-    </div>
-
-    <fieldset class="checkbox-group">
-      <legend>Acompanhamento & Recursos Harmônicos</legend>
-      <label class="checkbox-item">
-        <input type="checkbox" id="chk-bateria" checked> Acompanhamento de Bateria Simples
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="chk-inversoes" checked> Inversões de Acordes (C/E, G/B)
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="chk-emprestimo" checked> Empréstimo Harmônico (iv, ♭VI, ♭VII)
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="chk-dominantes" checked> Dominantes Secundários (V7/X)
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="chk-subv7" checked> Substitutos Dominantes (SubV7)
-      </label>
-      <label class="checkbox-item">
-        <input type="checkbox" id="chk-diminutos"> Acordes Diminutos de Passagem
-      </label>
-    </fieldset>
-
-    <button id="gerar">🎲 Gerar Progressão</button>
+    <button id="gerar" style="margin-top: 15px;">Gerar Progressão</button>
   </div>
 
-  <div class="card" id="resultado">
-    <div class="empty">Clique em "Gerar" para começar 🎶</div>
-  </div>
-  
-  <div class="card" id="campoHarmonico"></div>
-
-  <div class="card">
-    <div class="tabs">
-      <button id="tab-historico" class="ativo">Histórico</button>
-      <button id="tab-favoritos">Favoritos</button>
+  <!-- COLUNA EXIBIÇÃO E RESULTADOS -->
+  <div>
+    <div class="card" id="resultado">
+      <div class="vazio">Clique em "Gerar Progressão" para criar uma sequência harmônica.</div>
     </div>
-    <div id="lista-historico"></div>
-    <div id="lista-favoritos" style="display:none;"></div>
-  </div>
 
-  <footer>Inspirações ilimitadas para suas composições.</footer>
+    <div class="card" style="margin-top: 20px;">
+      <h2>Campo Harmônico</h2>
+      <div id="campoHarmonico">
+        <div class="vazio">Gere uma progressão para carregar o campo harmônico correspondente.</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <div class="tabs">
+        <div class="tab ativo" id="tab-historico">Histórico</div>
+        <div class="tab" id="tab-favoritos">Favoritos</div>
+      </div>
+      <div id="lista-historico"></div>
+      <div id="lista-favoritos" style="display: none;"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -447,6 +499,7 @@ function transporNota(nomeNota, semitons) {
 }
 
 function transporAcorde(acorde, semitons) {
+  if(!acorde) return '';
   const partes = acorde.split('/');
   let principal = partes[0];
   let baixo = partes[1];
@@ -479,7 +532,7 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
 }
 
 function aplicarInversao(acorde){
-  if (acorde.includes('/') || acorde.includes('5')) return acorde;
+  if (!acorde || acorde.includes('/') || acorde.includes('5')) return acorde;
   const match = acorde.match(/^[A-G][#b]?/);
   if (!match) return acorde;
 
@@ -506,6 +559,7 @@ function aplicarEmprestimoHarmonico(tomIndex, escala){
 }
 
 function gerarDominanteSecundario(acordeAlvo){
+  if(!acordeAlvo) return null;
   const match = acordeAlvo.match(/^[A-G][#b]?/);
   if (!match) return null;
   const raizAlvo = match[0];
@@ -517,6 +571,7 @@ function gerarDominanteSecundario(acordeAlvo){
 }
 
 function gerarSubV7(acordeAlvo){
+  if(!acordeAlvo) return null;
   const match = acordeAlvo.match(/^[A-G][#b]?/);
   if (!match) return null;
   const raizAlvo = match[0];
@@ -528,6 +583,7 @@ function gerarSubV7(acordeAlvo){
 }
 
 function gerarDiminutoPassagem(acordeAlvo){
+  if(!acordeAlvo) return null;
   const match = acordeAlvo.match(/^[A-G][#b]?/);
   if (!match) return null;
   const raizAlvo = match[0];
@@ -616,6 +672,7 @@ function pararPlayback() {
 }
 
 function tocarNotaSintetizada(freq, tempoInicio, duracao = 1.2, tipoTimbre = 'piano') {
+  if(!freq || isNaN(freq)) return;
   inicializarAudio();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
@@ -748,11 +805,14 @@ function renderVisualizer() {
 }
 
 function extrairNotasDoAcorde(nomeAcorde) {
+  if(!nomeAcorde) return [];
   const notaBaseMatch = nomeAcorde.match(/^[A-G][#b]?/);
   if(!notaBaseMatch) return [];
+  
   const notaBase = notaBaseMatch[0];
   let idxBase = NOTAS.indexOf(notaBase);
   if (idxBase === -1) idxBase = NOTAS_BEMOL.indexOf(notaBase);
+  if (idxBase === -1) return [];
 
   let intervalos = [0, 4, 7]; 
   if(nomeAcorde.includes('m') && !nomeAcorde.includes('maj')) intervalos = [0, 3, 7];
@@ -769,6 +829,7 @@ function extrairNotasDoAcorde(nomeAcorde) {
 }
 
 function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
+  if(!nomeAcorde) return;
   inicializarAudio();
   renderVisualizer();
   
@@ -809,6 +870,7 @@ function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
 }
 
 function exibirDiagramas(nomeAcorde) {
+  if(!nomeAcorde) return;
   let painel = document.getElementById('painelDiagrama');
   if(!painel) {
     painel = document.createElement('div');
@@ -882,7 +944,7 @@ function exibirDiagramas(nomeAcorde) {
   svgT.setAttribute('height', '60');
   svgT.setAttribute('viewBox', '0 0 120 60');
 
-  const notasAcorde = extrairNotasDoAcorde(nomeAcorde);
+  const notasAcorde = extrairNotasDoAcorde(nomeAcorde) || [];
   const teclasBrancas = ['C','D','E','F','G','A','B'];
   
   teclasBrancas.forEach((n, idx) => {
@@ -904,6 +966,7 @@ function exibirDiagramas(nomeAcorde) {
 function tocarProgressao(acordes, emLoop = false){
   pararPlayback();
   inicializarAudio();
+  if(!acordes || acordes.length === 0) return;
   
   if (emLoop) loopAtivo = true;
 
@@ -1184,14 +1247,14 @@ document.getElementById('gerar').addEventListener('click', () => {
     if(temperosAplicados < maxTemperos) {
       if(permitirSubV7 && Math.random() < (harmoniaSuave ? 0.15 : 0.25) && (acordes.length + 2 <= qtd) && idx !== 0){
         const sub = gerarSubV7(acorde);
-        if(sub){
+        if(sub && sub.acorde){
           acordes.push(sub.acorde);
           romanos.push(sub.roman);
           temperosAplicados++;
         }
       } else if(permitirDominantes && Math.random() < (harmoniaSuave ? 0.20 : 0.30) && (acordes.length + 2 <= qtd) && idx !== 0){
         const domSec = gerarDominanteSecundario(acorde);
-        if(domSec){
+        if(domSec && domSec.acorde){
           acordes.push(domSec.acorde);
           romanos.push(`V7/${roman}`);
           temperosAplicados++;
@@ -1200,7 +1263,7 @@ document.getElementById('gerar').addEventListener('click', () => {
 
       if(permitirDiminutos && Math.random() < (harmoniaSuave ? 0.10 : 0.20) && (acordes.length + 2 <= qtd)){
         const dim = gerarDiminutoPassagem(acorde);
-        if(dim){
+        if(dim && dim.acorde){
           acordes.push(dim.acorde);
           romanos.push(dim.roman);
           temperosAplicados++;
@@ -1209,7 +1272,7 @@ document.getElementById('gerar').addEventListener('click', () => {
 
       if(permitirEmprestimo && escala === 'maior' && Math.random() < (harmoniaSuave ? 0.15 : cfgEstilo.probEmprestimo)){
         const emp = aplicarEmprestimoHarmonico(tomIndex, escala);
-        if(emp){
+        if(emp && emp.acorde){
           acorde = emp.acorde;
           roman = emp.roman;
           temperosAplicados++;
@@ -1221,8 +1284,10 @@ document.getElementById('gerar').addEventListener('click', () => {
       acorde = aplicarInversao(acorde);
     }
 
-    acordes.push(acorde);
-    romanos.push(roman);
+    if(acorde && acordes.length < qtd) {
+      acordes.push(acorde);
+      romanos.push(roman);
+    }
   }
 
   const item = { estilo, escala, tom, acordes, romanos, ts: Date.now() };
