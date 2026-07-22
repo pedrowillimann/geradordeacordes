@@ -1,4 +1,4 @@
-# 🎸 Gerador de Progressões Harmônicas Ultra
+# Gerador de Progressões Harmônicas Ultra
 
 Um gerador inteligente de progressões de acordes desenvolvido em HTML, CSS e JavaScript puro.
 
@@ -6,9 +6,9 @@ O objetivo do projeto é fornecer inspiração rápida para compositores, produt
 
 ---
 
-## ✨ Recursos
+##  Recursos
 
-### 🎼 Geração de Progressões
+### Geração de Progressões
 
 * Pop
 * Rock
@@ -29,7 +29,7 @@ O objetivo do projeto é fornecer inspiração rápida para compositores, produt
 
 ---
 
-### 🎹 Escalas e Modos
+### Escalas e Modos
 
 * Maior (Jônio)
 * Menor (Eólio)
@@ -43,7 +43,7 @@ O objetivo do projeto é fornecer inspiração rápida para compositores, produt
 
 ---
 
-### 🎵 Recursos Harmônicos Avançados
+### Recursos Harmônicos Avançados
 
 #### Inversões de acordes
 
@@ -77,7 +77,7 @@ A7 → Dm
 
 ---
 
-### 🔊 Reprodução de Áudio
+### Reprodução de Áudio
 
 Utiliza Web Audio API para reproduzir:
 
@@ -97,7 +97,7 @@ Além de extensões como:
 
 ---
 
-### ⭐ Favoritos
+### Favoritos
 
 Salve suas progressões favoritas diretamente no navegador.
 
@@ -105,19 +105,19 @@ Os dados são armazenados usando LocalStorage.
 
 ---
 
-### 📜 Histórico
+### Histórico
 
 As últimas progressões geradas ficam disponíveis para consulta rápida.
 
 ---
 
-### 🎶 Campo Harmônico Automático
+### Campo Harmônico Automático
 
 Exibe os acordes da escala escolhida para facilitar a composição e o estudo.
 
 ---
 
-## 🚀 Como usar
+## Como usar
 
 1. Abra o arquivo `index.html`
 2. Escolha:
@@ -132,7 +132,7 @@ Exibe os acordes da escala escolhida para facilitar a composição e o estudo.
 
 ---
 
-## 🛠 Tecnologias Utilizadas
+## Tecnologias Utilizadas
 
 * HTML5
 * CSS3
@@ -144,7 +144,7 @@ Nenhuma dependência externa é necessária.
 
 ---
 
-## 📚 Conceitos Musicais Utilizados
+## Conceitos Musicais Utilizados
 
 O gerador utiliza conceitos de teoria musical como:
 
@@ -160,7 +160,7 @@ O gerador utiliza conceitos de teoria musical como:
 
 ---
 
-## 🎯 Objetivo
+## Objetivo
 
 Este projeto foi criado para ajudar músicos a:
 
@@ -172,7 +172,7 @@ Este projeto foi criado para ajudar músicos a:
 
 ---
 
-## 🔮 Funcionalidades Futuras
+## Funcionalidades Futuras
 
 * Exportação MIDI
 * Diagramas de violão
@@ -185,7 +185,7 @@ Este projeto foi criado para ajudar músicos a:
 
 ---
 
-## 📄 Licença
+## Licença
 
 Este projeto é livre para uso pessoal e educacional.
 
