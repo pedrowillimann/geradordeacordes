@@ -24,6 +24,7 @@
       padding: 20px;
       display: flex;
       justify-content: center;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .container {
@@ -74,6 +75,7 @@
       color: var(--text-color);
       border-radius: 4px;
       box-sizing: border-box;
+      font-size: 16px; /* Evita zoom automático no Safari iOS */
     }
 
     .checkbox-group {
@@ -95,7 +97,7 @@
 
     button {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       background-color: var(--accent-color);
       color: #000;
       font-weight: bold;
@@ -103,6 +105,7 @@
       border-radius: 4px;
       cursor: pointer;
       transition: background-color 0.2s;
+      font-size: 1rem;
     }
 
     button:hover {
@@ -173,7 +176,7 @@
 
     .transpor-container button {
       width: auto;
-      padding: 4px 8px;
+      padding: 6px 10px;
     }
 
     canvas#visualizer {
@@ -640,30 +643,50 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala, harmoniaSuave = true)
   }
 }
 
-// ---- WEB AUDIO API & TIMBRES SINTETIZADOS ----
+// ---- WEB AUDIO API & TIMBRES SINTETIZADOS (OTIMIZADO PARA SAFARI iOS) ----
 let audioCtx = null;
 let analyser = null;
 let animCanvasId = null;
 
 function inicializarAudio() {
-  if(!audioCtx || audioCtx.state === 'closed') {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!audioCtx) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    audioCtx = new AudioContextClass();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
     analyser.connect(audioCtx.destination);
-  } else if (audioCtx.state === 'suspended') {
+  }
+  
+  // No iOS Safari, o contexto precisa ser explicitamente resumido dentro de um manipulador de eventos do usuário
+  if (audioCtx.state === 'suspended') {
     audioCtx.resume();
   }
 }
+
+// Desbloqueia o som no primeiro toque em qualquer parte da tela (Exigência do iOS)
+function desbloquearAudioIOS() {
+  inicializarAudio();
+  if (audioCtx) {
+    // Toca um oscilador silencioso para destravar o hardware de som
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.0001;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(0);
+    osc.stop(0.1);
+  }
+  document.removeEventListener('touchstart', desbloquearAudioIOS);
+  document.removeEventListener('click', desbloquearAudioIOS);
+}
+document.addEventListener('touchstart', desbloquearAudioIOS, { once: true });
+document.addEventListener('click', desbloquearAudioIOS, { once: true });
 
 function pararPlayback() {
   loopAtivo = false;
   timeoutsAgendados.forEach(clearTimeout);
   timeoutsAgendados = [];
 
-  if (audioCtx && audioCtx.state !== 'closed') {
-    audioCtx.close();
-  }
   if (animCanvasId) {
     cancelAnimationFrame(animCanvasId);
     animCanvasId = null;
@@ -674,6 +697,7 @@ function pararPlayback() {
 function tocarNotaSintetizada(freq, tempoInicio, duracao = 1.2, tipoTimbre = 'piano') {
   if(!freq || isNaN(freq)) return;
   inicializarAudio();
+  
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
@@ -1214,6 +1238,8 @@ document.getElementById('tab-favoritos').addEventListener('click', () => {
 });
 
 document.getElementById('gerar').addEventListener('click', () => {
+  inicializarAudio(); // Garante o contexto ativo no toque do botão
+  
   const estilo = document.getElementById('estilo').value;
   const escala = document.getElementById('escala').value;
   const tom = document.getElementById('tom').value;
