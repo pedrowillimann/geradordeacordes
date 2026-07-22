@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gerador de Progressão de Acordes Ultra Pro (Bugfix)</title>
+<title>Gerador de Progressão de Acordes Ultra Pro</title>
 <style>
   :root{
     --card:#1a1d24;
@@ -24,7 +24,7 @@
     justify-content:center;
     padding:24px 16px;
   }
-  .app{ width:100%; max-width:460px; }
+  .app{ width:100%; max-width:480px; }
   h1{ font-size:1.4rem; text-align:center; margin-bottom:4px; }
   p.subtitle{ text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 24px; }
   .card{
@@ -36,13 +36,19 @@
   }
   label{ display:block; font-size:0.8rem; color:var(--muted); margin:14px 0 6px; }
   label:first-child{ margin-top:0; }
-  select{
+  select, input[type="number"]{
     width:100%; padding:12px; border-radius:10px;
     border:1px solid var(--border); background:#12151c; color:var(--text);
     font-size:1rem; appearance:none; -webkit-appearance:none;
   }
-  select:focus{ outline:none; border-color:var(--accent); }
+  select:focus, input:focus{ outline:none; border-color:var(--accent); }
   
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
   .checkbox-group{
     margin-top:16px;
     padding:12px;
@@ -83,12 +89,24 @@
   .chord:hover{ border-color:var(--accent2); }
   .roman{ font-size:0.75rem; color:var(--muted); margin-bottom:12px; }
   .empty{ color:var(--muted); font-size:0.9rem; padding:20px 0; }
+  
+  .transpor-container {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    margin: 12px 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
   .acoes{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
-  .acoes button{
+  .acoes button, .transpor-container button{
     font-size:0.8rem; padding:8px 12px; border-radius:8px; border:1px solid var(--border);
     background:#12151c; color:var(--text); cursor:pointer;
   }
-  .acoes button:active{ transform:scale(0.97); }
+  .acoes button:active, .transpor-container button:active{ transform:scale(0.97); }
+  
   .tabs{ display:flex; gap:8px; border-bottom:1px solid var(--border); margin-bottom:12px; }
   .tabs button{
     flex:1; border:none; background:none; padding:8px; font-size:0.85rem;
@@ -154,13 +172,29 @@
       <option>G#</option><option>A</option><option>A#</option><option>B</option>
     </select>
 
-    <label for="qtd">Quantidade de Acordes</label>
-    <select id="qtd">
-      <option value="2">2 (Vamp / Loop)</option>
-      <option value="4" selected>4</option>
-      <option value="6">6</option>
-      <option value="8">8</option>
-      <option value="12">12</option>
+    <div class="controls-grid">
+      <div>
+        <label for="qtd">Qtd. Acordes</label>
+        <select id="qtd">
+          <option value="2">2 (Vamp)</option>
+          <option value="4" selected>4</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="12">12</option>
+        </select>
+      </div>
+      <div>
+        <label for="bpm">Andamento (BPM)</label>
+        <input type="number" id="bpm" value="100" min="60" max="180">
+      </div>
+    </div>
+
+    <label for="ritmo">Estilo de Ritmo</label>
+    <select id="ritmo">
+      <option value="padrao">Padrão (4/4 Bloco)</option>
+      <option value="arpejo">Arpejado (Notas Suaves)</option>
+      <option value="bossa">Bossa Nova / Swung</option>
+      <option value="reggae">Reggae (Sincopado/Offbeat)</option>
     </select>
 
     <fieldset class="checkbox-group">
@@ -267,8 +301,37 @@ const EXTENSOES = {
 const BLUES_8  = [0,0,2,0,3,2,0,3];
 const BLUES_12 = [0,0,0,0,2,2,0,0,3,2,0,3];
 
+let itemAtual = null; // Armazena a progressão ativa no painel
+
 function nota(indiceBase, semitons){
   return NOTAS[(indiceBase + semitons + 120) % 12];
+}
+
+function transporNota(nomeNota, semitons) {
+  let idx = NOTAS.indexOf(nomeNota);
+  if (idx === -1) idx = NOTAS_BEMOL.indexOf(nomeNota);
+  if (idx === -1) return nomeNota;
+  return NOTAS[(idx + semitons + 120) % 12];
+}
+
+function transporAcorde(acorde, semitons) {
+  const partes = acorde.split('/');
+  let principal = partes[0];
+  let baixo = partes[1];
+
+  principal = principal.replace(/^[A-G][#b]?/, match => transporNota(match, semitons));
+  if (baixo) {
+    baixo = transporNota(baixo, semitons);
+    return `${principal}/${baixo}`;
+  }
+  return principal;
+}
+
+function transporProgressao(semitons) {
+  if (!itemAtual) return;
+  itemAtual.tom = transporNota(itemAtual.tom, semitons);
+  itemAtual.acordes = itemAtual.acordes.map(a => transporAcorde(a, semitons));
+  renderResultado(itemAtual);
 }
 
 function gerarAcorde(tomIndex, grauInfo, estilo){
@@ -301,8 +364,6 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
   return raiz + sufixo;
 }
 
-// --- RECURSOS AVANÇADOS CORRIGIDOS ---
-
 function aplicarInversao(acorde){
   if (acorde.includes('/') || acorde.includes('5')) return acorde;
   
@@ -316,7 +377,6 @@ function aplicarInversao(acorde){
   const ehMenor = acorde.includes('m') && !acorde.includes('maj');
   const semitonsTerca = ehMenor ? 3 : 4;
   
-  // Usa notação enarmônica bemolizada para terças menores (ex: Eb em vez de D#)
   const terca = ehMenor ? NOTAS_BEMOL[(idxRaiz + semitonsTerca) % 12] : NOTAS[(idxRaiz + semitonsTerca) % 12];
   return `${acorde}/${terca}`;
 }
@@ -325,9 +385,9 @@ function aplicarEmprestimoHarmonico(tomIndex, escala){
   if (escala !== 'maior') return null;
 
   const opcoes = [
-    { roman: 'iv', semitons: 5, sufixo: 'm' },     // iv menor (ex: Fm em C)
-    { roman: '♭VI', semitons: 8, sufixo: '' },     // ♭VI maior (ex: Ab em C)
-    { roman: '♭VII', semitons: 10, sufixo: '' }    // ♭VII maior (ex: Bb em C)
+    { roman: 'iv', semitons: 5, sufixo: 'm' },
+    { roman: '♭VI', semitons: 8, sufixo: '' },
+    { roman: '♭VII', semitons: 10, sufixo: '' }
   ];
 
   const esc = opcoes[Math.floor(Math.random() * opcoes.length)];
@@ -343,7 +403,6 @@ function gerarDominanteSecundario(acordeAlvo){
   let idxAlvo = NOTAS.indexOf(raizAlvo);
   if(idxAlvo === -1) idxAlvo = NOTAS_BEMOL.indexOf(raizAlvo);
 
-  // Dominante fica uma 5ª justa acima do acorde-alvo (7 semitons)
   const raizDom = NOTAS[(idxAlvo + 7) % 12];
   return { acorde: raizDom + '7', roman: 'V7' };
 }
@@ -396,9 +455,27 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   return seq.slice(0, qtd);
 }
 
-// ---- Sintetizador Web Audio API (Tratamento Fiel de Extensões) ----
+// ---- Sintetizador Web Audio API com Strumming (Efeito Dedilhado) ----
 let audioCtx = null;
-function tocarAcorde(nomeAcorde){
+
+function tocarNota(freq, tempoInicio, duracao = 1.2) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = 'triangle';
+  osc.frequency.value = freq;
+
+  gain.gain.setValueAtTime(0.12, tempoInicio);
+  gain.gain.exponentialRampToValueAtTime(0.001, tempoInicio + duracao);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(tempoInicio);
+  osc.stop(tempoInicio + duracao);
+}
+
+function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   
   const notaBaseMatch = nomeAcorde.match(/^[A-G][#b]?/);
@@ -407,42 +484,56 @@ function tocarAcorde(nomeAcorde){
   const notaBase = notaBaseMatch[0];
   const freqBase = FREQUENCIAS[notaBase] || 261.63;
   
-  // Tríades básicas
   let intervalos = [0, 4, 7]; 
   if(nomeAcorde.includes('m') && !nomeAcorde.includes('maj')) intervalos = [0, 3, 7];
   if(nomeAcorde.includes('dim') || nomeAcorde.includes('m7b5')) intervalos = [0, 3, 6];
   if(nomeAcorde.includes('aug')) intervalos = [0, 4, 8];
   if(nomeAcorde.includes('5')) intervalos = [0, 7];
 
-  // Adiciona extensões ao som sintetizado
   if (nomeAcorde.includes('maj7')) intervalos.push(11);
   else if (nomeAcorde.includes('7')) intervalos.push(10);
   if (nomeAcorde.includes('m9') || nomeAcorde.includes('add9') || nomeAcorde.includes('9')) intervalos.push(14);
   if (nomeAcorde.includes('6')) intervalos.push(9);
 
-  intervalos.forEach(semitons => {
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    
-    osc.type = 'triangle';
-    osc.frequency.value = freqBase * Math.pow(2, semitons / 12);
-    
-    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
-    
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    osc.start();
-    osc.stop(audioCtx.currentTime + 1.2);
-  });
+  const tempoInicioAbsoluto = audioCtx.currentTime + delayBase;
+
+  if (estiloRitmo === 'arpejo') {
+    // Toca as notas em sequência regular (Arpejo)
+    intervalos.forEach((semitons, idx) => {
+      const freq = freqBase * Math.pow(2, semitons / 12);
+      tocarNota(freq, tempoInicioAbsoluto + (idx * 0.12), 1.0);
+    });
+  } else {
+    // Efeito Strumming/Dedilhado suave (atraso de 35ms por nota)
+    intervalos.forEach((semitons, idx) => {
+      const freq = freqBase * Math.pow(2, semitons / 12);
+      const atrasoNota = idx * 0.035; 
+      tocarNota(freq, tempoInicioAbsoluto + atrasoNota, 1.2);
+    });
+  }
 }
 
 function tocarProgressao(acordes){
+  const bpm = parseInt(document.getElementById('bpm').value, 10) || 100;
+  const ritmo = document.getElementById('ritmo').value;
+  
+  // Duração de 1 tempo/compasso em segundos baseado no BPM
+  const duracaoCompasso = (60 / bpm) * 2; 
+
   acordes.forEach((acorde, index) => {
-    setTimeout(() => {
-      tocarAcorde(acorde);
-    }, index * 900);
+    let delay = index * duracaoCompasso;
+
+    if (ritmo === 'reggae') {
+      // Reggae: Toca o acorde de forma sincopada (contratempo)
+      delay += (duracaoCompasso * 0.25);
+      tocarAcorde(acorde, delay, ritmo);
+    } else if (ritmo === 'bossa') {
+      // Bossa Nova: batida dupla (tempo 1 e no contratempo)
+      tocarAcorde(acorde, delay, ritmo);
+      tocarAcorde(acorde, delay + (duracaoCompasso * 0.375), ritmo);
+    } else {
+      tocarAcorde(acorde, delay, ritmo);
+    }
   });
 }
 
@@ -458,10 +549,10 @@ let favoritos = carregar(LS_FAV);
 function idDe(item){ return item.tom+'|'+item.escala+'|'+item.estilo+'|'+item.acordes.join(','); }
 function ehFavorito(item){ return favoritos.some(f => idDe(f)===idDe(item)); }
 
-// Renderização segura contra XSS usando DOM nativo
 function renderResultado(item){
+  itemAtual = item;
   const resDiv = document.getElementById('resultado');
-  resDiv.textContent = ''; // Limpa conteúdo anterior seguro
+  resDiv.textContent = ''; 
 
   const label = document.createElement('div');
   label.className = 'label';
@@ -481,6 +572,25 @@ function renderResultado(item){
   const romanDiv = document.createElement('div');
   romanDiv.className = 'roman';
   romanDiv.textContent = item.romanos.join(' - ');
+
+  // Painel de Transposição
+  const transporDiv = document.createElement('div');
+  transporDiv.className = 'transpor-container';
+  
+  const spanTrans = document.createElement('span');
+  spanTrans.textContent = 'Transpor tom: ';
+  
+  const btnDown = document.createElement('button');
+  btnDown.textContent = '♭ -1 Semitom';
+  btnDown.onclick = () => transporProgressao(-1);
+
+  const btnUp = document.createElement('button');
+  btnUp.textContent = '♯ +1 Semitom';
+  btnUp.onclick = () => transporProgressao(1);
+
+  transporDiv.appendChild(spanTrans);
+  transporDiv.appendChild(btnDown);
+  transporDiv.appendChild(btnUp);
 
   const acoes = document.createElement('div');
   acoes.className = 'acoes';
@@ -517,6 +627,7 @@ function renderResultado(item){
   resDiv.appendChild(label);
   resDiv.appendChild(chordsDiv);
   resDiv.appendChild(romanDiv);
+  resDiv.appendChild(transporDiv);
   resDiv.appendChild(acoes);
 }
 
@@ -628,7 +739,6 @@ document.getElementById('gerar').addEventListener('click', () => {
 
     const rand = Math.random();
 
-    // Dominantes Secundários (Apenas insere se HOUVER ESPAÇO para ele e o acorde de resolução)
     if(permitirDominantes && i > 0 && rand < 0.20 && (acordes.length + 2 <= qtd) && !acordes[acordes.length-1].includes('7')){
       const domSec = gerarDominanteSecundario(acorde);
       if(domSec){
@@ -637,7 +747,6 @@ document.getElementById('gerar').addEventListener('click', () => {
       }
     }
 
-    // Empréstimo Harmônico
     if(permitirEmprestimo && rand > 0.80 && escala === 'maior'){
       const emp = aplicarEmprestimoHarmonico(tomIndex, escala);
       if(emp){
@@ -646,7 +755,6 @@ document.getElementById('gerar').addEventListener('click', () => {
       }
     }
 
-    // Inversões (Slash Chords)
     if(permitirInversoes && rand > 0.50 && rand <= 0.75){
       acorde = aplicarInversao(acorde);
     }
@@ -664,7 +772,6 @@ document.getElementById('gerar').addEventListener('click', () => {
 
   renderResultado(item);
 
-  // Exibição didática adequada para pentatônicas/blues vs escalas normais
   const campoDiv = document.getElementById('campoHarmonico');
   campoDiv.textContent = '';
   
