@@ -254,7 +254,6 @@ const FREQUENCIAS = {
   'G#': 415.30, 'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
 };
 
-// Configuração Centralizada de Estilos
 const CONFIG_ESTILOS = {
   jazz:          { extensoes: {'':'maj7', 'm':'m7', 'dim':'m7b5', 'aug':'maj7#5'}, probInversao: 0.4, probEmprestimo: 0.3 },
   bossa:         { extensoes: {'':'maj7', 'm':'m7', 'dim':'m7b5'}, probInversao: 0.5, probEmprestimo: 0.4 },
@@ -306,7 +305,11 @@ const ESCALAS = {
     {grau:0, qual:'m'},{grau:3, qual:''},{grau:5, qual:'m'},{grau:7, qual:'m'},{grau:10, qual:''}
   ],
   blues_escala: [
-    {grau:0, qual:'7'},{grau:3, qual:''},{grau:5, qual:'m'},{grau:6, qual:'dim'},{grau:7, qual:'7'},{grau:10, qual:''}
+    {grau:0, qual:'7'},
+    {grau:5, qual:'7'},
+    {grau:7, qual:'7'},
+    {grau:3, qual:'7'},
+    {grau:10, qual:'7'}
   ]
 };
 
@@ -319,7 +322,7 @@ const ROMANOS = {
   mixolidio: ['I','ii','iii°','IV','v','vi','♭VII'],
   penta_maior: ['I','ii','iii','V','vi'],
   penta_menor: ['i','III','iv','v','VII'],
-  blues_escala: ['I7','♭III','IV','♭V°','V7','♭VII']
+  blues_escala: ['I7','IV7','V7','♭III7','♭VII7']
 };
 
 let itemAtual = null; 
@@ -439,7 +442,12 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   const progressosComuns = {
     pop: [[0,4,5,3], [5,3,0,4], [0,5,3,4], [3,0,4,5]],
     rock: [[0,4,3,0], [5,3,0,4], [4,3,0,0], [0,3,4,0]],
-    blues: [[0,0,0,0,2,2,0,0,4,2,0,4], [0,0,2,0,4,2,0,4]],
+    blues: [
+      [0,1,0,2],       // I7 - IV7 - I7 - V7
+      [0,1,2,1],       // I7 - IV7 - V7 - IV7
+      [0,0,1,2],       // I7 - I7 - IV7 - V7
+      [0,1,0,0,1,1,0,0,2,1,0,2] // 12 Bar Blues clássico
+    ],
     jazz: [[1,4,0,5], [2,5,1,4], [5,1,4,0]],
     bossa: [[0,1,4,0], [5,1,4,0], [3,1,4,0]]
   };
@@ -455,7 +463,7 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   return seq.slice(0, qtd);
 }
 
-// ---- Web Audio API + Envelope ADSR + Visualizador Web Audio ----
+// Web Audio API
 let audioCtx = null;
 let analyser = null;
 let animCanvasId = null;
@@ -469,7 +477,6 @@ function inicializarAudio() {
   }
 }
 
-// Síntese Musical com ADSR
 function tocarNotaADSR(freq, tempoInicio, duracao = 1.2) {
   inicializarAudio();
   const osc = audioCtx.createOscillator();
@@ -478,7 +485,6 @@ function tocarNotaADSR(freq, tempoInicio, duracao = 1.2) {
   osc.type = 'triangle';
   osc.frequency.value = freq;
 
-  // Parâmetros ADSR
   const attack = 0.03;
   const decay = 0.2;
   const sustainLevel = 0.4;
@@ -684,7 +690,7 @@ function tocarProgressao(acordes, emLoop = false){
   timeoutsAgendados.push(tFim);
 }
 
-// ---- LocalStorage ----
+// LocalStorage
 const LS_HIST = 'progressoes_historico_v5';
 const LS_FAV = 'progressoes_favoritos_v5';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
@@ -902,7 +908,6 @@ document.getElementById('gerar').addEventListener('click', () => {
     let acorde = gerarAcorde(tomIndex, escalaGraus[idx], estilo);
     let roman = gerarRoman(idx, escala);
 
-    // Inserção Racional de Dominante Secundário ANTES do acorde alvo
     if(permitirDominantes && Math.random() < 0.25 && (acordes.length + 2 <= qtd) && idx !== 0){
       const domSec = gerarDominanteSecundario(acorde);
       if(domSec){
@@ -935,7 +940,6 @@ document.getElementById('gerar').addEventListener('click', () => {
 
   renderResultado(item);
 
-  // Render do Campo Harmônico Duplo (Triádico + Extensões)
   const campoDiv = document.getElementById('campoHarmonico');
   campoDiv.textContent = '';
   
