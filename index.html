@@ -446,7 +446,7 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
       [0,1,0,2],       // I7 - IV7 - I7 - V7
       [0,1,2,1],       // I7 - IV7 - V7 - IV7
       [0,0,1,2],       // I7 - I7 - IV7 - V7
-      [0,1,0,0,1,1,0,0,2,1,0,2] // 12 Bar Blues clássico
+      [0,1,0,0,1,1,0,0,2,1,0,2] // 12 Bar Blues
     ],
     jazz: [[1,4,0,5], [2,5,1,4], [5,1,4,0]],
     bossa: [[0,1,4,0], [5,1,4,0], [3,1,4,0]]
@@ -463,18 +463,38 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   return seq.slice(0, qtd);
 }
 
-// Web Audio API
+// ---- WEB AUDIO API & INTERRUPÇÃO IMEDIATA ----
 let audioCtx = null;
 let analyser = null;
 let animCanvasId = null;
 
 function inicializarAudio() {
-  if(!audioCtx) {
+  if(!audioCtx || audioCtx.state === 'closed') {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
     analyser.connect(audioCtx.destination);
+  } else if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
   }
+}
+
+function pararPlayback() {
+  loopAtivo = false;
+  timeoutsAgendados.forEach(clearTimeout);
+  timeoutsAgendados = [];
+
+  // CORREÇÃO CRUCIAL: Encerrar o contexto de áudio interrompe TODOS os sons agendados imediatamente
+  if (audioCtx && audioCtx.state !== 'closed') {
+    audioCtx.close();
+  }
+
+  if (animCanvasId) {
+    cancelAnimationFrame(animCanvasId);
+    animCanvasId = null;
+  }
+  
+  document.querySelectorAll('.chord').forEach(el => el.classList.remove('ativo'));
 }
 
 function tocarNotaADSR(freq, tempoInicio, duracao = 1.2) {
@@ -496,7 +516,7 @@ function tocarNotaADSR(freq, tempoInicio, duracao = 1.2) {
   gain.gain.setValueAtTime(0, tempoInicio);
   gain.gain.linearRampToValueAtTime(peekVol, tempoInicio + attack);
   gain.gain.linearRampToValueAtTime(sustainVol, tempoInicio + attack + decay);
-  gain.gain.setValueAtTime(sustainVol, tempoInicio + duracao - release);
+  gain.gain.setValueAtTime(sustainVol, tempoInicio + Math.max(duracao - release, attack + decay));
   gain.gain.exponentialRampToValueAtTime(0.0001, tempoInicio + duracao);
 
   osc.connect(gain);
@@ -514,7 +534,7 @@ function tocarBrumbo(tempoInicio) {
   osc.frequency.setValueAtTime(130, tempoInicio);
   osc.frequency.exponentialRampToValueAtTime(0.01, tempoInicio + 0.15);
 
-  gain.gain.setValueAtTime(0.25, tempoInicio);
+  gain.gain.setValueAtTime(0.3, tempoInicio);
   gain.gain.exponentialRampToValueAtTime(0.001, tempoInicio + 0.15);
 
   osc.connect(gain);
@@ -541,7 +561,7 @@ function tocarChimbal(tempoInicio) {
   filter.frequency.value = 6000;
 
   const gain = audioCtx.createGain();
-  gain.gain.setValueAtTime(0.04, tempoInicio);
+  gain.gain.setValueAtTime(0.05, tempoInicio);
   gain.gain.exponentialRampToValueAtTime(0.001, tempoInicio + 0.04);
 
   noise.connect(filter);
@@ -560,6 +580,7 @@ function renderVisualizer() {
   const dataArray = new Uint8Array(bufferLength);
 
   function draw() {
+    if(!analyser) return;
     animCanvasId = requestAnimationFrame(draw);
     analyser.getByteTimeDomainData(dataArray);
 
@@ -627,16 +648,6 @@ function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
   }
 }
 
-function pararPlayback() {
-  loopAtivo = false;
-  timeoutsAgendados.forEach(clearTimeout);
-  timeoutsAgendados = [];
-  if (animCanvasId) {
-    cancelAnimationFrame(animCanvasId);
-    animCanvasId = null;
-  }
-}
-
 function tocarProgressao(acordes, emLoop = false){
   pararPlayback();
   inicializarAudio();
@@ -651,32 +662,36 @@ function tocarProgressao(acordes, emLoop = false){
   const tempoTotal = acordes.length * duracaoCompasso;
 
   acordes.forEach((acorde, index) => {
-    let delay = index * duracaoCompasso;
+    const baseT = index * duracaoCompasso;
+    let delayAcorde = baseT;
 
+    // Agendamento do Destaque Visual
     const tHighlight = setTimeout(() => {
       document.querySelectorAll('.chord').forEach((el, i) => {
         if (i === index) el.classList.add('ativo');
         else el.classList.remove('ativo');
       });
-    }, delay * 1000);
+    }, delayAcorde * 1000);
     timeoutsAgendados.push(tHighlight);
 
+    // Agendamento do Ritmo dos Acordes
     if (ritmo === 'reggae') {
-      delay += (duracaoCompasso * 0.25);
-      tocarAcorde(acorde, delay, ritmo);
+      delayAcorde += (duracaoCompasso * 0.25);
+      tocarAcorde(acorde, delayAcorde, ritmo);
     } else if (ritmo === 'bossa') {
-      tocarAcorde(acorde, delay, ritmo);
-      tocarAcorde(acorde, delay + (duracaoCompasso * 0.375), ritmo);
+      tocarAcorde(acorde, delayAcorde, ritmo);
+      tocarAcorde(acorde, delayAcorde + (duracaoCompasso * 0.375), ritmo);
     } else {
-      tocarAcorde(acorde, delay, ritmo);
+      tocarAcorde(acorde, delayAcorde, ritmo);
     }
 
+    // CORREÇÃO DA BATERIA: Agendada universalmente em relação ao tempo do AudioContext
     if (usarBateria) {
-      const baseT = index * duracaoCompasso;
-      tocarBrumbo(audioCtx.currentTime + baseT);
-      tocarChimbal(audioCtx.currentTime + baseT + (duracaoCompasso * 0.25));
-      tocarChimbal(audioCtx.currentTime + baseT + (duracaoCompasso * 0.50));
-      tocarChimbal(audioCtx.currentTime + baseT + (duracaoCompasso * 0.75));
+      const tAbsoluto = audioCtx.currentTime + baseT;
+      tocarBrumbo(tAbsoluto);
+      tocarChimbal(tAbsoluto + (duracaoCompasso * 0.25));
+      tocarChimbal(tAbsoluto + (duracaoCompasso * 0.50));
+      tocarChimbal(tAbsoluto + (duracaoCompasso * 0.75));
     }
   });
 
@@ -690,7 +705,7 @@ function tocarProgressao(acordes, emLoop = false){
   timeoutsAgendados.push(tFim);
 }
 
-// LocalStorage
+// ---- LOCALSTORAGE ----
 const LS_HIST = 'progressoes_historico_v5';
 const LS_FAV = 'progressoes_favoritos_v5';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
