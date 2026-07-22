@@ -24,9 +24,9 @@
     justify-content:center;
     padding:24px 16px;
   }
-  .app{ width:100%; max-width:480px; }
+  .app{ width:100%; max-width:500px; }
   h1{ font-size:1.4rem; text-align:center; margin-bottom:4px; }
-  p.subtitle{ text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 24px; }
+  p.subtitle{ text-align:center; color:var(--muted); font-size:0.85rem; margin:0 0 20px; }
   .card{
     background:var(--card);
     border:1px solid var(--border);
@@ -84,12 +84,22 @@
   .chord{
     background:#12151c; border:1px solid var(--border); border-radius:10px;
     padding:10px 14px; font-size:1.1rem; font-weight:700; min-width:52px; text-align:center;
-    cursor:pointer; transition:border-color 0.2s;
+    cursor:pointer; transition:border-color 0.2s, background 0.2s;
   }
   .chord:hover{ border-color:var(--accent2); }
+  .chord.ativo{ border-color:var(--accent); background:#252b3b; }
   .roman{ font-size:0.75rem; color:var(--muted); margin-bottom:12px; }
   .empty{ color:var(--muted); font-size:0.9rem; padding:20px 0; }
   
+  canvas#visualizer {
+    width: 100%;
+    height: 60px;
+    background: #12151c;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+
   .transpor-container {
     display: flex;
     gap: 8px;
@@ -129,7 +139,7 @@
 <body>
 <div class="app">
   <h1>🎸 Gerador de Progressão Ultra</h1>
-  <p class="subtitle">Escolha estilo, escala e recursos avançados para compor!</p>
+  <p class="subtitle">Composição Harmônica e Áudio Sintetizado</p>
 
   <div class="card">
     <label for="estilo">Estilo Musical</label>
@@ -198,7 +208,10 @@
     </select>
 
     <fieldset class="checkbox-group">
-      <legend>Recursos Avançados</legend>
+      <legend>Acompanhamento & Recursos</legend>
+      <label class="checkbox-item">
+        <input type="checkbox" id="chk-bateria" checked> Acompanhamento de Bateria Simples
+      </label>
       <label class="checkbox-item">
         <input type="checkbox" id="chk-inversoes" checked> Inversões de Acordes (C/E, G/B)
       </label>
@@ -239,6 +252,26 @@ const FREQUENCIAS = {
   'C': 261.63, 'C#': 277.18, 'Db': 277.18, 'D': 293.66, 'D#': 311.13, 'Eb': 311.13,
   'E': 329.63, 'F': 349.23, 'F#': 369.99, 'Gb': 369.99, 'G': 392.00,
   'G#': 415.30, 'Ab': 415.30, 'A': 440.00, 'A#': 466.16, 'Bb': 466.16, 'B': 493.88
+};
+
+// Configuração Centralizada de Estilos
+const CONFIG_ESTILOS = {
+  jazz:          { extensoes: {'':'maj7', 'm':'m7', 'dim':'m7b5', 'aug':'maj7#5'}, probInversao: 0.4, probEmprestimo: 0.3 },
+  bossa:         { extensoes: {'':'maj7', 'm':'m7', 'dim':'m7b5'}, probInversao: 0.5, probEmprestimo: 0.4 },
+  samba:         { extensoes: {'':'6', 'm':'m7', 'dim':'m7b5'}, probInversao: 0.3, probEmprestimo: 0.3 },
+  lofi:          { extensoes: {'':'maj7', 'm':'m9', 'dim':'m7b5'}, probInversao: 0.4, probEmprestimo: 0.3 },
+  gospel:        { extensoes: {'':'maj7', 'm':'m7', 'dim':'m7b5'}, probInversao: 0.5, probEmprestimo: 0.4 },
+  blues:         { extensoes: {'':'7', 'm':'m7', 'dim':'dim7'}, probInversao: 0.1, probEmprestimo: 0.1 },
+  pop:           { extensoes: {'':'', 'm':'m'}, probInversao: 0.3, probEmprestimo: 0.25 },
+  rock:          { extensoes: {'':'', 'm':'m'}, probInversao: 0.2, probEmprestimo: 0.2 },
+  folk:          { extensoes: {'':'', 'm':'m'}, probInversao: 0.2, probEmprestimo: 0.15 },
+  indie:         { extensoes: {'':'add9', 'm':'m'}, probInversao: 0.3, probEmprestimo: 0.2 },
+  britpop:       { extensoes: {'':'sus2', 'm':'m'}, probInversao: 0.3, probEmprestimo: 0.2 },
+  reggae:        { extensoes: {'':'6', 'm':'m'}, probInversao: 0.1, probEmprestimo: 0.1 },
+  metal:         { extensoes: {'':'5', 'm':'5'}, probInversao: 0.1, probEmprestimo: 0.1 },
+  grunge:        { extensoes: {'':'', 'm':'m'}, probInversao: 0.2, probEmprestimo: 0.3 },
+  mpb_romantica: { extensoes: {'':'maj7', 'm':'m7', 'dim':'m7b5'}, probInversao: 0.4, probEmprestimo: 0.4 },
+  bluesrock:     { extensoes: {'':'7', 'm':'m7'}, probInversao: 0.2, probEmprestimo: 0.2 }
 };
 
 const ESCALAS = {
@@ -286,22 +319,12 @@ const ROMANOS = {
   mixolidio: ['I','ii','iii°','IV','v','vi','♭VII'],
   penta_maior: ['I','ii','iii','V','vi'],
   penta_menor: ['i','III','iv','v','VII'],
-  blues_escala: ['I7','III','iv','♭v°','V7','♭VII']
+  blues_escala: ['I7','♭III','IV','♭V°','V7','♭VII']
 };
 
-const EXTENSOES = {
-  jazz:   {'':'maj7', 'm':'m7', 'dim':'m7b5', 'aug':'maj7#5'},
-  bossa:  {'':'maj7', 'm':'m7', 'dim':'m7b5'},
-  samba:  {'':'6', 'm':'m7', 'dim':'m7b5'},
-  lofi:   {'':'maj7', 'm':'m9', 'dim':'m7b5'},
-  gospel: {'':'maj7', 'm':'m7', 'dim':'m7b5'},
-  blues:  {'':'7', 'm':'m7', 'dim':'dim7'}
-};
-
-const BLUES_8  = [0,0,2,0,3,2,0,3];
-const BLUES_12 = [0,0,0,0,2,2,0,0,3,2,0,3];
-
-let itemAtual = null; // Armazena a progressão ativa no painel
+let itemAtual = null; 
+let loopAtivo = false;
+let timeoutsAgendados = [];
 
 function nota(indiceBase, semitons){
   return NOTAS[(indiceBase + semitons + 120) % 12];
@@ -339,26 +362,10 @@ function gerarAcorde(tomIndex, grauInfo, estilo){
   
   const raiz = nota(tomIndex, grauInfo.grau);
   let sufixo = grauInfo.qual;
-  const ext = EXTENSOES[estilo];
-
-  if (ext && Math.random() < 0.7 && ext[grauInfo.qual] !== undefined){
-    sufixo = ext[grauInfo.qual];
-  }
-
-  if (estilo === 'indie' && grauInfo.qual === '' && Math.random() < 0.30){
-    sufixo = ['add9','sus2'][Math.floor(Math.random()*2)];
-  }
-  if (estilo === 'britpop' && grauInfo.qual === '' && Math.random() < 0.30){
-    sufixo = ['sus2','sus4'][Math.floor(Math.random()*2)];
-  }
-  if (estilo === 'reggae' && grauInfo.qual === '' && Math.random() < 0.30){
-    sufixo = '6';
-  }
-  if (estilo === 'metal' && Math.random() < 0.50){
-    sufixo = '5';
-  }
-  if (estilo === 'mpb_romantica' && grauInfo.qual === '' && Math.random() < 0.40){
-    sufixo = ['maj7','6','9'][Math.floor(Math.random()*3)];
+  
+  const cfg = CONFIG_ESTILOS[estilo] || CONFIG_ESTILOS.pop;
+  if (cfg.extensoes && cfg.extensoes[grauInfo.qual] !== undefined && Math.random() < 0.7){
+    sufixo = cfg.extensoes[grauInfo.qual];
   }
 
   return raiz + sufixo;
@@ -409,39 +416,32 @@ function gerarDominanteSecundario(acordeAlvo){
 
 function gerarRoman(idxGrau, escala){
   const arrayRomanos = ROMANOS[escala] || ROMANOS.maior;
-  return arrayRomanos[idxGrau] || '';
+  return arrayRomanos[idxGrau % arrayRomanos.length] || '';
 }
 
-function gerarCampoHarmonico(tomIndex, escala){
+function gerarCampoHarmonico(tomIndex, escala, estilo){
   const graus = ESCALAS[escala] || ESCALAS.maior;
-  return graus.map(grauInfo => {
-    const raiz = nota(tomIndex, grauInfo.grau);
-    return raiz + grauInfo.qual;
+  const cfg = CONFIG_ESTILOS[estilo] || CONFIG_ESTILOS.pop;
+
+  const triades = graus.map(g => nota(tomIndex, g.grau) + g.qual);
+  const tetrades = graus.map(g => {
+    const raiz = nota(tomIndex, g.grau);
+    const ext = cfg.extensoes ? (cfg.extensoes[g.qual] || g.qual) : g.qual;
+    return raiz + ext;
   });
+
+  return { triades, tetrades };
 }
 
 function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
-  if (estilo === 'blues'){
-    if (qtd <= 8) return BLUES_8.map(x => x % tamanhoEscala).slice(0, qtd);
-    return BLUES_12.map(x => x % tamanhoEscala).slice(0, qtd > 12 ? 12 : qtd);
-  }
-
+  if (tamanhoEscala === 0) return [];
+  
   const progressosComuns = {
     pop: [[0,4,5,3], [5,3,0,4], [0,5,3,4], [3,0,4,5]],
     rock: [[0,4,3,0], [5,3,0,4], [4,3,0,0], [0,3,4,0]],
-    folk: [[0,4,5,0], [5,3,0,4], [0,5,3,4]],
-    gospel: [[0,5,1,4], [3,4,0,5], [0,1,4,0]],
+    blues: [[0,0,0,0,2,2,0,0,4,2,0,4], [0,0,2,0,4,2,0,4]],
     jazz: [[1,4,0,5], [2,5,1,4], [5,1,4,0]],
-    bossa: [[0,1,4,0], [5,1,4,0], [3,1,4,0]],
-    samba: [[0,5,1,4], [1,4,0,5], [0,3,1,4]],
-    lofi: [[1,4,0,5], [3,4,0,5], [0,5,1,4]],
-    reggae: [[0,3,0,4], [0,4,3,4], [0,5,3,4]],
-    metal: [[0,5,3,4], [0,1,0,5], [0,6,5,3]],
-    indie: [[5,3,0,4], [0,4,5,3], [3,0,5,4]],
-    britpop: [[0,4,5,3], [0,3,4,0], [5,3,0,4]],
-    grunge: [[0,5,3,4], [5,4,3,4], [0,3,5,4]],
-    mpb_romantica: [[0,5,1,4], [5,1,4,0], [3,1,4,0]],
-    bluesrock: [[0,0,3,0], [0,3,0,4]]
+    bossa: [[0,1,4,0], [5,1,4,0], [3,1,4,0]]
   };
 
   const base = progressosComuns[estilo] || progressosComuns.pop;
@@ -455,28 +455,138 @@ function gerarSequenciaDegraus(estilo, qtd, tamanhoEscala){
   return seq.slice(0, qtd);
 }
 
-// ---- Sintetizador Web Audio API com Strumming (Efeito Dedilhado) ----
+// ---- Web Audio API + Envelope ADSR + Visualizador Web Audio ----
 let audioCtx = null;
+let analyser = null;
+let animCanvasId = null;
 
-function tocarNota(freq, tempoInicio, duracao = 1.2) {
+function inicializarAudio() {
+  if(!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.connect(audioCtx.destination);
+  }
+}
+
+// Síntese Musical com ADSR
+function tocarNotaADSR(freq, tempoInicio, duracao = 1.2) {
+  inicializarAudio();
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
   osc.type = 'triangle';
   osc.frequency.value = freq;
 
-  gain.gain.setValueAtTime(0.12, tempoInicio);
-  gain.gain.exponentialRampToValueAtTime(0.001, tempoInicio + duracao);
+  // Parâmetros ADSR
+  const attack = 0.03;
+  const decay = 0.2;
+  const sustainLevel = 0.4;
+  const release = 0.4;
+
+  const peekVol = 0.15;
+  const sustainVol = peekVol * sustainLevel;
+
+  gain.gain.setValueAtTime(0, tempoInicio);
+  gain.gain.linearRampToValueAtTime(peekVol, tempoInicio + attack);
+  gain.gain.linearRampToValueAtTime(sustainVol, tempoInicio + attack + decay);
+  gain.gain.setValueAtTime(sustainVol, tempoInicio + duracao - release);
+  gain.gain.exponentialRampToValueAtTime(0.0001, tempoInicio + duracao);
 
   osc.connect(gain);
-  gain.connect(audioCtx.destination);
+  gain.connect(analyser);
 
   osc.start(tempoInicio);
   osc.stop(tempoInicio + duracao);
 }
 
+function tocarBrumbo(tempoInicio) {
+  inicializarAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  
+  osc.frequency.setValueAtTime(130, tempoInicio);
+  osc.frequency.exponentialRampToValueAtTime(0.01, tempoInicio + 0.15);
+
+  gain.gain.setValueAtTime(0.25, tempoInicio);
+  gain.gain.exponentialRampToValueAtTime(0.001, tempoInicio + 0.15);
+
+  osc.connect(gain);
+  gain.connect(analyser);
+
+  osc.start(tempoInicio);
+  osc.stop(tempoInicio + 0.15);
+}
+
+function tocarChimbal(tempoInicio) {
+  inicializarAudio();
+  const bufferSize = audioCtx.sampleRate * 0.04;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'highpass';
+  filter.frequency.value = 6000;
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.04, tempoInicio);
+  gain.gain.exponentialRampToValueAtTime(0.001, tempoInicio + 0.04);
+
+  noise.connect(filter);
+  filter.connect(gain);
+  gain.connect(analyser);
+
+  noise.start(tempoInicio);
+}
+
+function renderVisualizer() {
+  const canvas = document.getElementById('visualizer');
+  if(!canvas || !analyser) return;
+
+  const ctx = canvas.getContext('2d');
+  const bufferLength = analyser.frequencyBinCount;
+  const dataArray = new Uint8Array(bufferLength);
+
+  function draw() {
+    animCanvasId = requestAnimationFrame(draw);
+    analyser.getByteTimeDomainData(dataArray);
+
+    ctx.fillStyle = '#12151c';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#22d3ee';
+    ctx.beginPath();
+
+    const sliceWidth = canvas.width * 1.0 / bufferLength;
+    let x = 0;
+
+    for (let i = 0; i < bufferLength; i++) {
+      const v = dataArray[i] / 128.0;
+      const y = v * canvas.height / 2;
+
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+
+      x += sliceWidth;
+    }
+
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+  }
+
+  if(!animCanvasId) draw();
+}
+
 function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  inicializarAudio();
+  renderVisualizer();
   
   const notaBaseMatch = nomeAcorde.match(/^[A-G][#b]?/);
   if(!notaBaseMatch) return;
@@ -498,48 +608,85 @@ function tocarAcorde(nomeAcorde, delayBase = 0, estiloRitmo = 'padrao'){
   const tempoInicioAbsoluto = audioCtx.currentTime + delayBase;
 
   if (estiloRitmo === 'arpejo') {
-    // Toca as notas em sequência regular (Arpejo)
     intervalos.forEach((semitons, idx) => {
       const freq = freqBase * Math.pow(2, semitons / 12);
-      tocarNota(freq, tempoInicioAbsoluto + (idx * 0.12), 1.0);
+      tocarNotaADSR(freq, tempoInicioAbsoluto + (idx * 0.12), 1.0);
     });
   } else {
-    // Efeito Strumming/Dedilhado suave (atraso de 35ms por nota)
     intervalos.forEach((semitons, idx) => {
       const freq = freqBase * Math.pow(2, semitons / 12);
-      const atrasoNota = idx * 0.035; 
-      tocarNota(freq, tempoInicioAbsoluto + atrasoNota, 1.2);
+      const atrasoNota = idx * 0.03; 
+      tocarNotaADSR(freq, tempoInicioAbsoluto + atrasoNota, 1.2);
     });
   }
 }
 
-function tocarProgressao(acordes){
+function pararPlayback() {
+  loopAtivo = false;
+  timeoutsAgendados.forEach(clearTimeout);
+  timeoutsAgendados = [];
+  if (animCanvasId) {
+    cancelAnimationFrame(animCanvasId);
+    animCanvasId = null;
+  }
+}
+
+function tocarProgressao(acordes, emLoop = false){
+  pararPlayback();
+  inicializarAudio();
+  
+  if (emLoop) loopAtivo = true;
+
   const bpm = parseInt(document.getElementById('bpm').value, 10) || 100;
   const ritmo = document.getElementById('ritmo').value;
+  const usarBateria = document.getElementById('chk-bateria').checked;
   
-  // Duração de 1 tempo/compasso em segundos baseado no BPM
   const duracaoCompasso = (60 / bpm) * 2; 
+  const tempoTotal = acordes.length * duracaoCompasso;
 
   acordes.forEach((acorde, index) => {
     let delay = index * duracaoCompasso;
 
+    const tHighlight = setTimeout(() => {
+      document.querySelectorAll('.chord').forEach((el, i) => {
+        if (i === index) el.classList.add('ativo');
+        else el.classList.remove('ativo');
+      });
+    }, delay * 1000);
+    timeoutsAgendados.push(tHighlight);
+
     if (ritmo === 'reggae') {
-      // Reggae: Toca o acorde de forma sincopada (contratempo)
       delay += (duracaoCompasso * 0.25);
       tocarAcorde(acorde, delay, ritmo);
     } else if (ritmo === 'bossa') {
-      // Bossa Nova: batida dupla (tempo 1 e no contratempo)
       tocarAcorde(acorde, delay, ritmo);
       tocarAcorde(acorde, delay + (duracaoCompasso * 0.375), ritmo);
     } else {
       tocarAcorde(acorde, delay, ritmo);
     }
+
+    if (usarBateria) {
+      const baseT = index * duracaoCompasso;
+      tocarBrumbo(audioCtx.currentTime + baseT);
+      tocarChimbal(audioCtx.currentTime + baseT + (duracaoCompasso * 0.25));
+      tocarChimbal(audioCtx.currentTime + baseT + (duracaoCompasso * 0.50));
+      tocarChimbal(audioCtx.currentTime + baseT + (duracaoCompasso * 0.75));
+    }
   });
+
+  const tFim = setTimeout(() => {
+    document.querySelectorAll('.chord').forEach(el => el.classList.remove('ativo'));
+    if (loopAtivo) {
+      tocarProgressao(acordes, true);
+    }
+  }, tempoTotal * 1000);
+  
+  timeoutsAgendados.push(tFim);
 }
 
-// ---- Histórico e Favoritos ----
-const LS_HIST = 'progressoes_historico_v4';
-const LS_FAV = 'progressoes_favoritos_v4';
+// ---- LocalStorage ----
+const LS_HIST = 'progressoes_historico_v5';
+const LS_FAV = 'progressoes_favoritos_v5';
 function carregar(chave){ try{ return JSON.parse(localStorage.getItem(chave)) || []; }catch(e){ return []; } }
 function salvar(chave,dados){ localStorage.setItem(chave, JSON.stringify(dados)); }
 
@@ -551,8 +698,15 @@ function ehFavorito(item){ return favoritos.some(f => idDe(f)===idDe(item)); }
 
 function renderResultado(item){
   itemAtual = item;
+  pararPlayback();
+
   const resDiv = document.getElementById('resultado');
   resDiv.textContent = ''; 
+
+  const canvas = document.createElement('canvas');
+  canvas.id = 'visualizer';
+  canvas.width = 400;
+  canvas.height = 60;
 
   const label = document.createElement('div');
   label.className = 'label';
@@ -573,7 +727,6 @@ function renderResultado(item){
   romanDiv.className = 'roman';
   romanDiv.textContent = item.romanos.join(' - ');
 
-  // Painel de Transposição
   const transporDiv = document.createElement('div');
   transporDiv.className = 'transpor-container';
   
@@ -597,7 +750,15 @@ function renderResultado(item){
 
   const btnTocar = document.createElement('button');
   btnTocar.textContent = '▶ Ouvir';
-  btnTocar.onclick = () => tocarProgressao(item.acordes);
+  btnTocar.onclick = () => tocarProgressao(item.acordes, false);
+
+  const btnLoop = document.createElement('button');
+  btnLoop.textContent = '🔁 Loop (Jam)';
+  btnLoop.onclick = () => tocarProgressao(item.acordes, true);
+
+  const btnParar = document.createElement('button');
+  btnParar.textContent = '⏹ Parar';
+  btnParar.onclick = () => pararPlayback();
 
   const btnCopiar = document.createElement('button');
   btnCopiar.textContent = '📋 Copiar';
@@ -621,9 +782,12 @@ function renderResultado(item){
   };
 
   acoes.appendChild(btnTocar);
+  acoes.appendChild(btnLoop);
+  acoes.appendChild(btnParar);
   acoes.appendChild(btnCopiar);
   acoes.appendChild(btnFav);
 
+  resDiv.appendChild(canvas);
   resDiv.appendChild(label);
   resDiv.appendChild(chordsDiv);
   resDiv.appendChild(romanDiv);
@@ -724,6 +888,7 @@ document.getElementById('gerar').addEventListener('click', () => {
 
   const tomIndex = NOTAS.indexOf(tom);
   const escalaGraus = ESCALAS[escala] || ESCALAS.maior;
+  const cfgEstilo = CONFIG_ESTILOS[estilo] || CONFIG_ESTILOS.pop;
 
   const sequencia = gerarSequenciaDegraus(estilo, qtd, escalaGraus.length);
   
@@ -737,9 +902,8 @@ document.getElementById('gerar').addEventListener('click', () => {
     let acorde = gerarAcorde(tomIndex, escalaGraus[idx], estilo);
     let roman = gerarRoman(idx, escala);
 
-    const rand = Math.random();
-
-    if(permitirDominantes && i > 0 && rand < 0.20 && (acordes.length + 2 <= qtd) && !acordes[acordes.length-1].includes('7')){
+    // Inserção Racional de Dominante Secundário ANTES do acorde alvo
+    if(permitirDominantes && Math.random() < 0.25 && (acordes.length + 2 <= qtd) && idx !== 0){
       const domSec = gerarDominanteSecundario(acorde);
       if(domSec){
         acordes.push(domSec.acorde);
@@ -747,7 +911,7 @@ document.getElementById('gerar').addEventListener('click', () => {
       }
     }
 
-    if(permitirEmprestimo && rand > 0.80 && escala === 'maior'){
+    if(permitirEmprestimo && escala === 'maior' && Math.random() < cfgEstilo.probEmprestimo){
       const emp = aplicarEmprestimoHarmonico(tomIndex, escala);
       if(emp){
         acorde = emp.acorde;
@@ -755,7 +919,7 @@ document.getElementById('gerar').addEventListener('click', () => {
       }
     }
 
-    if(permitirInversoes && rand > 0.50 && rand <= 0.75){
+    if(permitirInversoes && Math.random() < cfgEstilo.probInversao){
       acorde = aplicarInversao(acorde);
     }
 
@@ -763,7 +927,6 @@ document.getElementById('gerar').addEventListener('click', () => {
     romanos.push(roman);
   }
 
-  const campo = gerarCampoHarmonico(tomIndex, escala);
   const item = { estilo, escala, tom, acordes, romanos, ts: Date.now() };
   
   historico.unshift(item);
@@ -772,27 +935,45 @@ document.getElementById('gerar').addEventListener('click', () => {
 
   renderResultado(item);
 
+  // Render do Campo Harmônico Duplo (Triádico + Extensões)
   const campoDiv = document.getElementById('campoHarmonico');
   campoDiv.textContent = '';
   
-  const tituloCampo = document.createElement('div');
-  tituloCampo.className = 'label';
-  tituloCampo.textContent = escala.includes('penta') || escala.includes('blues') 
-    ? `Notas / Acordes da Escala (${escala})` 
-    : `Campo Harmônico (${escala})`;
+  const campoDados = gerarCampoHarmonico(tomIndex, escala, estilo);
   
-  const chordsCampoDiv = document.createElement('div');
-  chordsCampoDiv.className = 'chords';
-  campo.forEach(a => {
+  const tituloTriade = document.createElement('div');
+  tituloTriade.className = 'label';
+  tituloTriade.textContent = `Campo Harmônico Triádico (${escala})`;
+  
+  const divTriades = document.createElement('div');
+  divTriades.className = 'chords';
+  campoDados.triades.forEach(a => {
     const chord = document.createElement('div');
     chord.className = 'chord';
     chord.textContent = a;
     chord.onclick = () => tocarAcorde(a);
-    chordsCampoDiv.appendChild(chord);
+    divTriades.appendChild(chord);
   });
 
-  campoDiv.appendChild(tituloCampo);
-  campoDiv.appendChild(chordsCampoDiv);
+  const tituloTET = document.createElement('div');
+  tituloTET.className = 'label';
+  tituloTET.style.marginTop = '12px';
+  tituloTET.textContent = `Campo Harmônico com Extensões (${estilo})`;
+
+  const divTetrades = document.createElement('div');
+  divTetrades.className = 'chords';
+  campoDados.tetrades.forEach(a => {
+    const chord = document.createElement('div');
+    chord.className = 'chord';
+    chord.textContent = a;
+    chord.onclick = () => tocarAcorde(a);
+    divTetrades.appendChild(chord);
+  });
+
+  campoDiv.appendChild(tituloTriade);
+  campoDiv.appendChild(divTriades);
+  campoDiv.appendChild(tituloTET);
+  campoDiv.appendChild(divTetrades);
 
   renderListas();
 });
